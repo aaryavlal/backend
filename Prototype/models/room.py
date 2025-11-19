@@ -2,10 +2,38 @@ import secrets
 from database import query_db, execute_db
 
 class Room:
+    # Static demo room code that's always available
+    DEMO_ROOM_CODE = "DEMO01"
+    DEMO_ROOM_NAME = "Demo Room - Always Available"
     @staticmethod
     def generate_room_code():
         """Generate a random 6-character room code"""
         return secrets.token_hex(3).upper()
+    
+    @staticmethod
+    def ensure_demo_room_exists():
+        """Ensure the demo room exists, create it if it doesn't"""
+        demo_room = Room.find_by_code(Room.DEMO_ROOM_CODE)
+        
+        if not demo_room:
+            # Create demo room with a system user (id=0, we'll handle this specially)
+            try:
+                room_id = execute_db(
+                    'INSERT INTO rooms (room_code, name, created_by) VALUES (?, ?, ?)',
+                    (Room.DEMO_ROOM_CODE, Room.DEMO_ROOM_NAME, 0)
+                )
+                return Room.find_by_id(room_id)
+            except:
+                # If it fails, try to find it again (race condition)
+                return Room.find_by_code(Room.DEMO_ROOM_CODE)
+        
+        return demo_room
+    
+    @staticmethod
+    def is_demo_room(room_id):
+        """Check if a room is the demo room"""
+        room = Room.find_by_id(room_id)
+        return room and room['room_code'] == Room.DEMO_ROOM_CODE
     
     @staticmethod
     def create(name, created_by):
@@ -152,17 +180,41 @@ class Room:
             completed_modules = Room.get_room_progress(room_id)
             
             if len(completed_modules) == 6:
-                # All modules complete - delete the room
-                Room.delete_room(room_id)
-                return {'module_complete': True, 'room_complete': True}
+                # Check if this is the demo room
+                if Room.is_demo_room(room_id):
+                    # Reset demo room progress instead of deleting
+                    Room.reset_demo_room(room_id)
+                    return {'module_complete': True, 'room_complete': True, 'is_demo': True}
+                else:
+                    # Regular room - delete it
+                    Room.delete_room(room_id)
+                    return {'module_complete': True, 'room_complete': True}
             
             return {'module_complete': True, 'room_complete': False}
         
         return {'module_complete': False, 'room_complete': False}
     
     @staticmethod
+    def reset_demo_room(room_id):
+        """Reset the demo room's progress but keep members"""
+        if not Room.is_demo_room(room_id):
+            return
+        
+        # Delete all room progress
+        execute_db('DELETE FROM room_progress WHERE room_id = ?', (room_id,))
+        
+        # Delete all user progress for members in this room
+        members = Room.get_members(room_id)
+        for member in members:
+            execute_db('DELETE FROM user_progress WHERE user_id = ?', (member['id'],))
+    
+    @staticmethod
     def delete_room(room_id):
-        """Delete a room and all associated data"""
+        """Delete a room and all associated data (protects demo room)"""
+        # Don't allow deleting the demo room
+        if Room.is_demo_room(room_id):
+            return
+        
         # Update all members' current_room_id to NULL
         members = Room.get_members(room_id)
         for member in members:

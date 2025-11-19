@@ -7,6 +7,9 @@ from datetime import timedelta
 # Import database initialization
 from database import init_db
 
+# Import models
+from models.room import Room
+
 # Import blueprints
 from routes.auth import auth_bp
 from routes.rooms import rooms_bp
@@ -74,7 +77,10 @@ def missing_token_callback(error):
 # Initialize database on startup
 with app.app_context():
     init_db()
-    print('✅ Flask app initialized')
+    # Ensure demo room exists
+    demo_room = Room.ensure_demo_room_exists()
+    print(f'✅ Flask app initialized')
+    print(f'✅ Demo room available: {Room.DEMO_ROOM_CODE}')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

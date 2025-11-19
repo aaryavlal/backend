@@ -40,7 +40,10 @@ def complete_module():
         response_data['room_progress'] = progress_result
         
         if progress_result['room_complete']:
-            response_data['message'] = 'Congratulations! All modules complete. Room has been closed.'
+            if progress_result.get('is_demo'):
+                response_data['message'] = 'Congratulations! All modules complete. Demo room has been reset!'
+            else:
+                response_data['message'] = 'Congratulations! All modules complete. Room has been closed.'
         elif progress_result['module_complete']:
             response_data['message'] = f'Module {module_number} completed by entire room!'
     
