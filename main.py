@@ -26,7 +26,7 @@ from api.groq_api import groq_api
 from api.gemini_api import gemini_api
 from api.microblog_api import microblog_api
 from api.classroom_api import classroom_api
-from hacks.joke import joke_api  # Import the joke API blueprint
+from hacks.joke import scenario_api  # Import the joke API blueprint
 from api.post import post_api  # Import the social media post API
 #from api.announcement import announcement_api ##temporary revert
 
@@ -43,7 +43,7 @@ from model.study import Study, initStudies
 from model.classroom import Classroom
 from model.post import Post, init_posts
 from model.microblog import MicroBlog, Topic, init_microblogs
-from hacks.jokes import initJokes 
+from hacks.jokes import initScenarios 
 # from model.announcement import Announcement ##temporary revert
 
 # server only Views
@@ -77,13 +77,13 @@ app.register_blueprint(student_api)
 app.register_blueprint(study_api)
 app.register_blueprint(classroom_api)
 app.register_blueprint(feedback_api)
-app.register_blueprint(joke_api)  # Register the joke API blueprint
+app.register_blueprint(scenario_api)  # Register the joke API blueprint
 app.register_blueprint(post_api)  # Register the social media post API
 # app.register_blueprint(announcement_api) ##temporary revert
 
 # Jokes file initialization
 with app.app_context():
-    initJokes()
+    initScenarios()
 
 # Tell Flask-Login the view function name of your login route
 login_manager.login_view = "login"

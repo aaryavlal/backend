@@ -5,87 +5,97 @@ import random
 
 from hacks.jokes import *
 
-joke_api = Blueprint('joke_api', __name__,
-                   url_prefix='/api/jokes')
+scenario_api = Blueprint('scenario_api', __name__,
+                   url_prefix='/api/scenarios')
 
 # API generator https://flask-restful.readthedocs.io/en/latest/api.html#id1
-api = Api(joke_api)
+api = Api(scenario_api)
 
-class JokesAPI:
+class ScenariosAPI:
     # not implemented
     class _Create(Resource):
-        def post(self, joke):
+        def post(self, scenario):
             pass
             
-    # getJokes()
+    # getScenarios()
     class _Read(Resource):
         def get(self):
-            return jsonify(getJokes())
+            return jsonify(getScenarios())
 
-    # getJoke(id)
+    # getScenario(id)
     class _ReadID(Resource):
         def get(self, id):
-            return jsonify(getJoke(id))
+            return jsonify(getScenario(id))
 
-    # getRandomJoke()
+    # getRandomScenario()
     class _ReadRandom(Resource):
         def get(self):
-            return jsonify(getRandomJoke())
+            return jsonify(getRandomScenario())
     
-    # getRandomJoke()
+    # countScenarios()
     class _ReadCount(Resource):
         def get(self):
-            count = countJokes()
+            count = countScenarios()
             countMsg = {'count': count}
             return jsonify(countMsg)
 
-    # put method: addJokeHaHa
-    class _UpdateLike(Resource):
+    # put method: addDistributed
+    class _UpdateDistributed(Resource):
         def put(self, id):
-            addJokeHaHa(id)
-            return jsonify(getJoke(id))
+            addDistributed(id)
+            return jsonify(getScenario(id))
 
-    # put method: addJokeBooHoo
-    class _UpdateJeer(Resource):
+    # put method: addParallel
+    class _UpdateParallel(Resource):
         def put(self, id):
-            addJokeBooHoo(id)
-            return jsonify(getJoke(id))
+            addParallel(id)
+            return jsonify(getScenario(id))
+
+    # put method: addSequential
+    class _UpdateSequential(Resource):
+        def put(self, id):
+            addSequential(id)
+            return jsonify(getScenario(id))
 
     # building RESTapi resources/interfaces, these routes are added to Web Server
-    api.add_resource(_Create, '/create/<string:joke>', '/create/<string:joke>/')
+    api.add_resource(_Create, '/create/<string:scenario>', '/create/<string:scenario>/')
     api.add_resource(_Read, "", '/')
     api.add_resource(_ReadID, '/<int:id>', '/<int:id>/')
     api.add_resource(_ReadRandom, '/random', '/random/')
     api.add_resource(_ReadCount, '/count', '/count/')
-    api.add_resource(_UpdateLike, '/like/<int:id>', '/like/<int:id>/')
-    api.add_resource(_UpdateJeer, '/jeer/<int:id>', '/jeer/<int:id>/')
+    api.add_resource(_UpdateDistributed, '/distributed/<int:id>', '/distributed/<int:id>/')
+    api.add_resource(_UpdateParallel, '/parallel/<int:id>', '/parallel/<int:id>/')
+    api.add_resource(_UpdateSequential, '/sequential/<int:id>', '/sequential/<int:id>/')
 
 if __name__ == "__main__": 
     # server = "http://127.0.0.1:5000" # run local
     server = 'https://flask.opencodingsociety.com' # run from web
-    url = server + "/api/jokes"
+    url = server + "/api/scenarios"
     responses = []  # responses list
 
-    # get count of jokes on server
+    # get count of scenarios on server
     count_response = requests.get(url+"/count")
     count_json = count_response.json()
     count = count_json['count']
 
-    # update likes/dislikes test sequence
+    # update votes test sequence
     num = str(random.randint(0, count-1)) # test a random record
     responses.append(
-        requests.get(url+"/"+num)  # read joke by id
+        requests.get(url+"/"+num)  # read scenario by id
         ) 
     responses.append(
-        requests.put(url+"/like/"+num) # add to like count
+        requests.put(url+"/distributed/"+num) # vote for distributed
         ) 
     responses.append(
-        requests.put(url+"/jeer/"+num) # add to jeer count
+        requests.put(url+"/parallel/"+num) # vote for parallel
+        ) 
+    responses.append(
+        requests.put(url+"/sequential/"+num) # vote for sequential
         ) 
 
-    # obtain a random joke
+    # obtain a random scenario
     responses.append(
-        requests.get(url+"/random")  # read a random joke
+        requests.get(url+"/random")  # read a random scenario
         ) 
 
     # cycle through responses
