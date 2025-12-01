@@ -130,3 +130,10 @@ app.config['KASM_API_KEY_SECRET'] = os.environ.get('KASM_API_KEY_SECRET') or Non
 #GROQ settings
 app.config['GROQ_API_KEY'] = os.environ.get('GROQ_API_KEY')
 
+# Allow anonymous submissions for local/dev testing by default. Set the
+# environment variable `ALLOW_ANONYMOUS_SUBMIT=false` to disable in stricter setups.
+app.config['ALLOW_ANONYMOUS_SUBMIT'] = not (os.environ.get('ALLOW_ANONYMOUS_SUBMIT', '').lower() in ('0','false','no'))
+# UID to use for a shared anonymous account (will be created if missing when anonymous is allowed)
+app.config['ANONYMOUS_UID'] = os.environ.get('ANONYMOUS_UID') or 'guest'
+app.config['ANONYMOUS_NAME'] = os.environ.get('ANONYMOUS_NAME') or 'Guest User'
+

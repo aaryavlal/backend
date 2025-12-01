@@ -28,6 +28,7 @@ from api.microblog_api import microblog_api
 from api.classroom_api import classroom_api
 from hacks.joke import scenario_api  # Import the joke API blueprint
 from api.post import post_api  # Import the social media post API
+from api.quiz_api import quiz_api
 #from api.announcement import announcement_api ##temporary revert
 
 # database Initialization functions
@@ -44,6 +45,7 @@ from model.classroom import Classroom
 from model.post import Post, init_posts
 from model.microblog import MicroBlog, Topic, init_microblogs
 from hacks.jokes import initScenarios 
+from model.quiz import init_quizzes
 # from model.announcement import Announcement ##temporary revert
 
 # server only Views
@@ -80,10 +82,16 @@ app.register_blueprint(feedback_api)
 app.register_blueprint(scenario_api)  # Register the joke API blueprint
 app.register_blueprint(post_api)  # Register the social media post API
 # app.register_blueprint(announcement_api) ##temporary revert
+app.register_blueprint(quiz_api)
 
 # Jokes file initialization
 with app.app_context():
     initScenarios()
+    try:
+        init_quizzes()
+    except Exception:
+        # ignore if tables/migrations are not present yet
+        pass
 
 # Tell Flask-Login the view function name of your login route
 login_manager.login_view = "login"
@@ -125,6 +133,21 @@ def login():
 @app.route('/studytracker')  # route for the study tracker page
 def studytracker():
     return render_template("studytracker.html")
+
+
+@app.route('/quizzes')
+def quizzes():
+    return render_template('quizzes.html')
+
+
+@app.route('/quiz/<int:quiz_id>')
+def quiz_page(quiz_id):
+    return render_template('quiz.html')
+
+
+@app.route('/leaderboard/<int:quiz_id>')
+def leaderboard_page(quiz_id):
+    return render_template('leaderboard.html')
     
 @app.route('/logout')
 def logout():

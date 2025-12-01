@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Quizzes</title>
+  </head>
+  <body>
+    <h1>Available Quizzes</h1>
+    <div id="quizzes"></div>
+    <script src="/static/js/quiz.js"></script>
+    <script>
+      // load list
+      document.addEventListener('DOMContentLoaded', ()=>{
+        const container = document.getElementById('quizzes');
+        if (window.loadQuizList) return window.loadQuizList(container);
+        fetch('/api/quiz/all')
+          .then(r=>r.json())
+          .then(data=>{
+            data.forEach(q=>{
+              const d = document.createElement('div');
+              d.innerHTML = `<h3>${q.title}</h3><p>${q.description||''}</p><a href='/quiz/${q.id}'>Take Quiz</a> | <a href='/leaderboard/${q.id}'>Leaderboard</a>`;
+              container.appendChild(d);
+            })
+          })
+          .catch(e=>console.error(e))
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Leaderboard</title>
+  </head>
+  <body>
+    <h1>Leaderboard</h1>
+    <div id="leaderboard-root"></div>
+
+    <h3>Add Manual Entry</h3>
+    <form id="manual-entry-form">
+      <label>User ID: <input type="number" name="userId" required></label><br>
+      <label>Score: <input type="number" name="score" step="0.1" required></label><br>
+      <label>Total: <input type="number" name="total" step="0.1" required></label><br>
+      <button type="submit">Add Entry</button>
+    </form>
+
+    <script src="/static/js/quiz.js"></script>
+    <script>
+      const id = window.location.pathname.split('/').pop();
+      window.addEventListener('DOMContentLoaded', ()=>{
+        if (window.loadLeaderboard) window.loadLeaderboard(id, document.getElementById('leaderboard-root'));
+
+        const form = document.getElementById('manual-entry-form');
+        form.addEventListener('submit', async (e)=>{
+          e.preventDefault();
+          const fd = new FormData(form);
+          const payload = {
+            quizId: parseInt(id),
+            userId: parseInt(fd.get('userId')),
+            score: parseFloat(fd.get('score')),
+            total: parseFloat(fd.get('total'))
+          };
+          try{
+            await fetch('/api/quiz/attempt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+            // reload leaderboard
+            if (window.loadLeaderboard) window.loadLeaderboard(id, document.getElementById('leaderboard-root'));
+          }catch(err){
+            alert('Failed to add entry');
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

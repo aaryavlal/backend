@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Quiz</title>
+  </head>
+  <body>
+    <div style="display:flex;gap:24px;align-items:flex-start;">
+      <div id="quiz-root" style="flex:2"></div>
+      <div id="leaderboard-root" style="flex:1;border-left:1px solid #ccc;padding-left:16px"></div>
+    </div>
+    <script src="/static/js/quiz.js"></script>
+    <script>
+      const id = window.location.pathname.split('/').pop();
+      // quiz.js exposes loadQuiz and loadLeaderboard
+      window.addEventListener('DOMContentLoaded', ()=>{
+        if (window.loadQuiz) window.loadQuiz(id, document.getElementById('quiz-root'));
+        if (window.loadLeaderboard) window.loadLeaderboard(id, document.getElementById('leaderboard-root'));
+      });
+    </script>
+  </body>
+</html>
