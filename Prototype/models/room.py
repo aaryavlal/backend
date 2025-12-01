@@ -149,78 +149,49 @@ class Room:
     @staticmethod
     def check_and_update_room_progress(room_id, module_number):
         """Check if all members completed a module and update room progress"""
-        print(f"\n🔍 Checking progress for room {room_id}, module {module_number}")
+        members = Room.get_members(room_id)
         
-        try:
-            members = Room.get_members(room_id)
-            
-            if not members:
-                print(f"  ❌ No members found")
-                return {'module_complete': False, 'room_complete': False}
-            
-            print(f"  👥 Room has {len(members)} members")
-            
-            # Count how many members completed this module
-            result = query_db('''
-                SELECT COUNT(DISTINCT up.user_id) as completed_count
-                FROM user_progress up
-                JOIN room_members rm ON up.user_id = rm.user_id
-                WHERE rm.room_id = ? AND up.module_number = ?
-            ''', (room_id, module_number), one=True)
-            
-            print(f"  📊 Query result: {result}")
-            
-            completed_count = result['completed_count']
-            all_completed = completed_count == len(members)
-            
-            print(f"  📊 {completed_count}/{len(members)} members completed module {module_number}")
-            print(f"  ✅ All completed: {all_completed}")
-            
-            if all_completed:
-                # Mark module as complete for the room
-                try:
-                    execute_db(
-                        'INSERT INTO room_progress (room_id, module_number) VALUES (?, ?)',
-                        (room_id, module_number)
-                    )
-                    print(f"  ✅ Marked module {module_number} complete for room")
-                except Exception as e:
-                    # Already marked
-                    print(f"  ℹ️ Module {module_number} already marked complete: {e}")
-                
-                # Check if all 6 modules are complete
-                completed_modules = Room.get_room_progress(room_id)
-                
-                print(f"  📈 Room completed modules: {[p['module_number'] for p in completed_modules]}")
-                print(f"  📊 Total completed: {len(completed_modules)}/6")
-                
-                if len(completed_modules) == 6:
-                    print(f"  🎉 ALL 6 MODULES COMPLETE!")
-                    
-                    # Check if this is the demo room
-                    is_demo = Room.is_demo_room(room_id)
-                    print(f"  🔍 Is demo room: {is_demo}")
-                    
-                    if is_demo:
-                        # Reset demo room progress instead of deleting
-                        print(f"  🔄 Calling reset_demo_room...")
-                        Room.reset_demo_room(room_id)
-                        return {'module_complete': True, 'room_complete': True, 'is_demo': True}
-                    else:
-                        # Regular room - delete it
-                        print(f"  🗑️ Deleting regular room...")
-                        Room.delete_room(room_id)
-                        return {'module_complete': True, 'room_complete': True}
-                
-                return {'module_complete': True, 'room_complete': False}
-            
+        if not members:
             return {'module_complete': False, 'room_complete': False}
+        
+        # Count how many members completed this module
+        result = query_db('''
+            SELECT COUNT(DISTINCT up.user_id) as completed_count
+            FROM user_progress up
+            JOIN room_members rm ON up.user_id = rm.user_id
+            WHERE rm.room_id = ? AND up.module_number = ?
+        ''', (room_id, module_number), one=True)
+        
+        completed_count = result['completed_count']
+        all_completed = completed_count == len(members)
+        
+        if all_completed:
+            # Mark module as complete for the room
+            try:
+                execute_db(
+                    'INSERT INTO room_progress (room_id, module_number) VALUES (?, ?)',
+                    (room_id, module_number)
+                )
+            except:
+                # Already marked
+                pass
             
-        except Exception as e:
-            print(f"  ❌ ERROR in check_and_update_room_progress: {e}")
-            import traceback
-            traceback.print_exc()
-            raise
+            # Check if all 6 modules are complete
+            completed_modules = Room.get_room_progress(room_id)
+            
+            if len(completed_modules) == 6:
+                # Check if this is the demo room
+                if Room.is_demo_room(room_id):
+                    # Demo room - just mark as complete, DON'T auto-reset
+                    return {'module_complete': True, 'room_complete': True, 'is_demo': True}
+                else:
+                    # Regular room - delete it
+                    Room.delete_room(room_id)
+                    return {'module_complete': True, 'room_complete': True}
+            
+            return {'module_complete': True, 'room_complete': False}
+        
+        return {'module_complete': False, 'room_complete': False}
     
     @staticmethod
     def reset_demo_room(room_id):
@@ -228,20 +199,24 @@ class Room:
         if not Room.is_demo_room(room_id):
             return
         
-        print(f"🔄 RESETTING DEMO ROOM {room_id}")
-        
         # Delete all room progress
         execute_db('DELETE FROM room_progress WHERE room_id = ?', (room_id,))
-        print(f"  ✅ Deleted room_progress")
         
         # Delete all user progress for members in this room
         members = Room.get_members(room_id)
-        print(f"  👥 Found {len(members)} members to reset")
         for member in members:
             execute_db('DELETE FROM user_progress WHERE user_id = ?', (member['id'],))
-            print(f"    ✅ Deleted progress for user {member['id']} ({member['username']})")
+    
+    @staticmethod
+    def reset_room_progress(room_id):
+        """Reset a room's progress (works for any room, not just demo)"""
+        # Delete all room progress
+        execute_db('DELETE FROM room_progress WHERE room_id = ?', (room_id,))
         
-        print(f"✅ Demo room reset complete!")
+        # Delete all user progress for members in this room
+        members = Room.get_members(room_id)
+        for member in members:
+            execute_db('DELETE FROM user_progress WHERE user_id = ?', (member['id'],))
     
     @staticmethod
     def delete_room(room_id):

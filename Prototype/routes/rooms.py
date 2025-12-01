@@ -74,25 +74,11 @@ def join_room():
     if not room:
         return jsonify({'error': 'Invalid room code'}), 404
     
-    # Check if user is already in this room
-    user = User.find_by_id(user_id)
-    if user.get('current_room_id') == room['id']:
-        # Already in this room, just return success
-        return jsonify({
-            'message': 'Already in this room',
-            'room': room
-        }), 200
-    
     # Add user to room
     success = Room.add_member(room['id'], user_id)
     
     if not success:
-        # User is in room_members table but current_room_id doesn't match
-        # This shouldn't happen but handle it gracefully
-        return jsonify({
-            'message': 'Already a member of this room',
-            'room': room
-        }), 200
+        return jsonify({'error': 'Already a member of this room'}), 400
     
     return jsonify({
         'message': 'Joined room successfully',
@@ -138,6 +124,29 @@ def get_room_progress(room_id):
     stats = Room.get_room_stats(room_id)
     
     return jsonify(stats), 200
+
+@rooms_bp.route('/<int:room_id>/reset-progress', methods=['POST'])
+@jwt_required()
+def reset_room_progress(room_id):
+    """Reset all progress for a room (admin only or demo room)"""
+    room = Room.find_by_id(room_id)
+    
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+    
+    # Allow reset for demo room or if user is admin
+    is_demo = Room.is_demo_room(room_id)
+    is_admin = require_admin()
+    
+    if not is_demo and not is_admin:
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    Room.reset_room_progress(room_id)
+    
+    return jsonify({
+        'message': 'Room progress reset successfully',
+        'room_id': room_id
+    }), 200
 
 @rooms_bp.route('/<int:room_id>', methods=['DELETE'])
 @jwt_required()
