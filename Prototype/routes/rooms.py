@@ -116,13 +116,24 @@ def get_room_members(room_id):
 @jwt_required()
 def get_room_progress(room_id):
     """Get progress for a room"""
+    user_id = int(get_jwt_identity())
     room = Room.find_by_id(room_id)
-    
+
     if not room:
         return jsonify({'error': 'Room not found'}), 404
-    
+
+    # Verify user is a member of this room
+    members = Room.get_members(room_id)
+    is_member = any(member['id'] == user_id for member in members)
+
+    if not is_member:
+        # User got kicked out or room membership was lost
+        from database import execute_db
+        execute_db('UPDATE users SET current_room_id = NULL WHERE id = ?', (user_id,))
+        return jsonify({'error': 'You are no longer a member of this room'}), 403
+
     stats = Room.get_room_stats(room_id)
-    
+
     return jsonify(stats), 200
 
 @rooms_bp.route('/<int:room_id>/reset-progress', methods=['POST'])
