@@ -10,43 +10,35 @@ progress_bp = Blueprint('progress', __name__, url_prefix='/api/progress')
 def complete_module():
     """Mark a module as complete for the current user"""
     data = request.get_json()
-    
-    print(f"\n📝 Complete module request: {data}")
-    
+
     if not data.get('module_number'):
         return jsonify({'error': 'Module number required'}), 400
-    
+
     module_number = data['module_number']
-    
+
     # Validate module number
     if not isinstance(module_number, int) or module_number < 1 or module_number > 6:
         return jsonify({'error': 'Module number must be between 1 and 6'}), 400
-    
+
     user_id = int(get_jwt_identity())
-    print(f"  👤 User {user_id} completing module {module_number}")
-    
+
     # Mark module complete
     User.mark_module_complete(user_id, module_number)
-    print(f"  ✅ Module marked complete in user_progress")
-    
+
     # Get user's current room
     user = User.find_by_id(user_id)
     room_id = user.get('current_room_id')
-    
-    print(f"  🏠 User's current room: {room_id}")
-    
+
     response_data = {
         'message': f'Module {module_number} completed',
         'completed_modules': User.get_completed_modules(user_id)
     }
-    
+
     # Check room progress if user is in a room
     if room_id:
-        print(f"  🔍 Checking room progress...")
         progress_result = Room.check_and_update_room_progress(room_id, module_number)
         response_data['room_progress'] = progress_result
-        print(f"  📊 Progress result: {progress_result}")
-        
+
         if progress_result['room_complete']:
             if progress_result.get('is_demo'):
                 response_data['message'] = 'Congratulations! All modules complete. Demo room has been reset!'
@@ -54,9 +46,7 @@ def complete_module():
                 response_data['message'] = 'Congratulations! All modules complete. Room has been closed.'
         elif progress_result['module_complete']:
             response_data['message'] = f'Module {module_number} completed by entire room!'
-    else:
-        print(f"  ℹ️ User not in a room, skipping room progress check")
-    
+
     return jsonify(response_data), 200
 
 @progress_bp.route('/my-progress', methods=['GET'])

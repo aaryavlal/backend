@@ -78,5 +78,9 @@ class User:
         execute_db('DELETE FROM user_progress WHERE user_id = ?', (user_id,))
         # Delete room memberships
         execute_db('DELETE FROM room_members WHERE user_id = ?', (user_id,))
+        # Delete glossary entries authored by user
+        execute_db('DELETE FROM glossary WHERE author_id = ?', (user_id,))
+        # Update current_room_id for this user to NULL (in case of foreign key constraints)
+        execute_db('UPDATE users SET current_room_id = NULL WHERE id = ?', (user_id,))
         # Delete user
         execute_db('DELETE FROM users WHERE id = ?', (user_id,))

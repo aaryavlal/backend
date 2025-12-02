@@ -89,7 +89,8 @@ class Room:
             execute_db('UPDATE users SET current_room_id = ? WHERE id = ?', (room_id, user_id))
             return True
         except:
-            # User already in room
+            # User already in room - ensure current_room_id is set correctly
+            execute_db('UPDATE users SET current_room_id = ? WHERE id = ?', (room_id, user_id))
             return False
     
     @staticmethod
@@ -185,9 +186,9 @@ class Room:
                     # Demo room - just mark as complete, DON'T auto-reset
                     return {'module_complete': True, 'room_complete': True, 'is_demo': True}
                 else:
-                    # Regular room - delete it
-                    Room.delete_room(room_id)
-                    return {'module_complete': True, 'room_complete': True}
+                    # Regular room - just mark as complete, DON'T auto-delete
+                    # Let admin manually delete or reset the room
+                    return {'module_complete': True, 'room_complete': True, 'is_demo': False}
             
             return {'module_complete': True, 'room_complete': False}
         

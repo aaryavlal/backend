@@ -2,12 +2,18 @@ import sqlite3
 import os
 from contextlib import contextmanager
 
-DATABASE_PATH = os.environ.get('DATABASE_PATH', 'database.db')
+# Get absolute path for database
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_PATH = os.environ.get('DATABASE_PATH', os.path.join(BASE_DIR, 'database.db'))
 
 def get_db_connection():
-    """Create a database connection"""
-    conn = sqlite3.connect(DATABASE_PATH)
+    """Create a database connection with optimized settings"""
+    conn = sqlite3.connect(DATABASE_PATH, timeout=10.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row  # This allows us to access columns by name
+    # Enable foreign key constraints
+    conn.execute('PRAGMA foreign_keys = ON')
+    # Enable write-ahead logging for better concurrency
+    conn.execute('PRAGMA journal_mode = WAL')
     return conn
 
 @contextmanager
@@ -121,18 +127,30 @@ def init_db():
 
 def query_db(query, args=(), one=False):
     """Execute a query and return results"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(query, args)
-        rv = cursor.fetchall()
-        return (rv[0] if rv else None) if one else rv
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, args)
+            rv = cursor.fetchall()
+            return (rv[0] if rv else None) if one else rv
+    except sqlite3.Error as e:
+        raise DatabaseError(f"Database query failed: {str(e)}")
 
 def execute_db(query, args=()):
     """Execute a query without returning results (INSERT, UPDATE, DELETE)"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(query, args)
-        return cursor.lastrowid
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, args)
+            return cursor.lastrowid
+    except sqlite3.IntegrityError as e:
+        raise DatabaseError(f"Database integrity error: {str(e)}")
+    except sqlite3.Error as e:
+        raise DatabaseError(f"Database execution failed: {str(e)}")
+
+class DatabaseError(Exception):
+    """Custom exception for database errors"""
+    pass
 
 if __name__ == '__main__':
     init_db()
