@@ -90,7 +90,32 @@ def init_db():
                 FOREIGN KEY (room_id) REFERENCES rooms(id)
             )
         ''')
-        
+
+        # Glossary table for collaborative knowledge base
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS glossary (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                room_id INTEGER NOT NULL,
+                term TEXT NOT NULL,
+                definition TEXT NOT NULL,
+                author_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (room_id) REFERENCES rooms(id),
+                FOREIGN KEY (author_id) REFERENCES users(id)
+            )
+        ''')
+
+        # Create index for faster lookups
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_glossary_room_id
+            ON glossary(room_id)
+        ''')
+
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_glossary_term
+            ON glossary(term)
+        ''')
+
         conn.commit()
         print('✅ Database initialized successfully')
 

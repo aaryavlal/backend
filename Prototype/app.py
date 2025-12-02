@@ -18,6 +18,7 @@ from models.room import Room
 from routes.auth import auth_bp
 from routes.rooms import rooms_bp
 from routes.progress import progress_bp
+from routes.glossary import glossary_bp
 
 # Create Flask app
 app = Flask(__name__)
@@ -37,6 +38,7 @@ jwt = JWTManager(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(rooms_bp)
 app.register_blueprint(progress_bp)
+app.register_blueprint(glossary_bp)
 
 # Root endpoint
 @app.route('/')
@@ -47,7 +49,8 @@ def index():
         'endpoints': {
             'auth': '/api/auth',
             'rooms': '/api/rooms',
-            'progress': '/api/progress'
+            'progress': '/api/progress',
+            'glossary': '/api/glossary'
         }
     })
 

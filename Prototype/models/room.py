@@ -212,11 +212,14 @@ class Room:
         """Reset a room's progress (works for any room, not just demo)"""
         # Delete all room progress
         execute_db('DELETE FROM room_progress WHERE room_id = ?', (room_id,))
-        
+
         # Delete all user progress for members in this room
         members = Room.get_members(room_id)
         for member in members:
             execute_db('DELETE FROM user_progress WHERE user_id = ?', (member['id'],))
+
+        # Note: Glossary entries are NOT deleted when resetting progress
+        # as they represent collaborative knowledge that persists
     
     @staticmethod
     def delete_room(room_id):
@@ -224,12 +227,14 @@ class Room:
         # Don't allow deleting the demo room
         if Room.is_demo_room(room_id):
             return
-        
+
         # Update all members' current_room_id to NULL
         members = Room.get_members(room_id)
         for member in members:
             execute_db('UPDATE users SET current_room_id = NULL WHERE id = ?', (member['id'],))
-        
+
+        # Delete glossary entries
+        execute_db('DELETE FROM glossary WHERE room_id = ?', (room_id,))
         # Delete room progress
         execute_db('DELETE FROM room_progress WHERE room_id = ?', (room_id,))
         # Delete room members
