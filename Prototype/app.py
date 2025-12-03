@@ -64,11 +64,13 @@ limiter = Limiter(
 # -----------------------------
 # Gemini client + quiz config
 # -----------------------------
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-else:
-    gemini_client = None
+# -----------------------------------------
+# Force Gemini API key (explicit hard-coded)
+# -----------------------------------------
+GEMINI_API_KEY = "AIzaSyD7i4Wt6kTyWt0LqOT6RTn_uL9ax8jxjPg"
+
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+
 
 QUESTION = (
     "In your own words, explain what parallel computing is and give one real-world "
