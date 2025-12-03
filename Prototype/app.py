@@ -4,8 +4,10 @@ from flask_jwt_extended import JWTManager, jwt_required
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import os
+import json
 from datetime import timedelta
 from dotenv import load_dotenv
+from google import genai
 
 # Load environment variables
 load_dotenv()
@@ -48,6 +50,7 @@ CORS(app, resources={r"/api/*": cors_config})
 # Initialize JWT
 jwt = JWTManager(app)
 
+<<<<<<< HEAD
 # Initialize rate limiter
 limiter = Limiter(
     app=app,
@@ -58,6 +61,135 @@ limiter = Limiter(
 )
 
 # Register blueprints
+=======
+# -----------------------------
+# Gemini client + quiz config
+# -----------------------------
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+else:
+    gemini_client = None
+
+QUESTION = (
+    "In your own words, explain what parallel computing is and give one real-world "
+    "example where it would be beneficial. Answer in 3–5 sentences."
+)
+
+RUBRIC = """
+Score from 0 to 3.
+
+3 points:
+- Clearly defines parallel computing (multiple tasks executed at the same time).
+- Gives at least one realistic, correct real-world example (e.g., image processing, simulations, AI training).
+- Explanation is coherent and 3–5 sentences long.
+
+2 points:
+- Mostly correct definition but missing some detail or weak example.
+
+1 point:
+- Very vague or partially incorrect understanding.
+
+0 points:
+- Totally off-topic or no meaningful answer.
+"""
+
+GRADING_INSTRUCTIONS = """
+You are an automated grading assistant for a CS quiz.
+Use ONLY the rubric below to score.
+
+Return ONLY valid JSON in exactly this format:
+
+{
+  "score": <integer 0-3>,
+  "max_score": 3,
+  "feedback": "<short explanation>"
+}
+"""
+
+# -----------------------------
+# QUIZ GRADING ENDPOINT
+# -----------------------------
+@app.route("/api/quiz/grade", methods=["POST"])
+def grade_quiz():
+    print(">>> grade_quiz endpoint hit")
+
+    if gemini_client is None:
+        return jsonify({
+            "error": "Gemini API is not configured on the server (GEMINI_API_KEY missing)."
+        }), 500
+
+    data = request.get_json(silent=True) or {}
+    student_answer = (data.get("answer") or "").strip()
+
+    if not student_answer:
+        return jsonify({"error": "Field 'answer' is required."}), 400
+
+    prompt = f"""{GRADING_INSTRUCTIONS}
+
+Question:
+{QUESTION}
+
+Rubric:
+{RUBRIC}
+
+Student answer:
+\"\"\"{student_answer}\"\"\"
+"""
+
+    try:
+        # Ask Gemini for a JSON response
+        gemini_response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config={"response_mime_type": "application/json"},
+        )
+
+        # Prefer parsed JSON if available
+        result = getattr(gemini_response, "parsed", None)
+        raw_text = getattr(gemini_response, "text", "")
+
+        # Normalize result to a dict
+        if isinstance(result, dict):
+            graded = result
+        else:
+            # Fallback: try to parse raw_text as JSON
+            try:
+                graded = json.loads(raw_text)
+            except Exception:
+                # Final fallback: wrap raw text in a valid JSON object
+                graded = {
+                    "score": 0,
+                    "max_score": 3,
+                    "feedback": raw_text or "Model returned an unexpected response."
+                }
+
+        # Ensure required keys exist
+        graded_score = graded.get("score", 0)
+        graded_max = graded.get("max_score", 3)
+        graded_feedback = graded.get("feedback", "No feedback provided.")
+
+        safe_payload = {
+            "score": int(graded_score) if isinstance(graded_score, (int, float, str)) else 0,
+            "max_score": int(graded_max) if isinstance(graded_max, (int, float, str)) else 3,
+            "feedback": str(graded_feedback),
+        }
+
+        print(">>> Gemini graded:", safe_payload)
+
+        return jsonify(safe_payload), 200
+
+    except Exception as e:
+        print(">>> Gemini error:", e)
+        return jsonify({
+            "error": "Gemini API call failed.",
+            "details": str(e)
+        }), 500
+
+# -----------------------------
+# Existing routes
+# -----------------------------
+>>>>>>> 93ab567 (change to protype app.py for api quiz grading)
 app.register_blueprint(auth_bp)
 app.register_blueprint(rooms_bp)
 app.register_blueprint(progress_bp)
@@ -125,13 +257,15 @@ def invalid_token_callback(error):
 def missing_token_callback(error):
     return jsonify({'error': 'Authorization token required'}), 401
 
-# Initialize database on startup
+# Initialize DB on startup
 with app.app_context():
     init_db()
-    # Ensure demo room exists
     demo_room = Room.ensure_demo_room_exists()
-    print(f'✅ Flask app initialized')
-    print(f'✅ Demo room available: {Room.DEMO_ROOM_CODE}')
+    print("✅ Flask app initialized")
+    print(f"✅ Demo room available: {Room.DEMO_ROOM_CODE}")
+
+print(">>> RUNNING THIS app.py FILE")
 
 if __name__ == '__main__':
+    print(">>> STARTING FLASK ON PORT 5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
