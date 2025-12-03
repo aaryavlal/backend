@@ -242,6 +242,36 @@ def bulk_delete_rooms():
         }
     }), 200
 
+@rooms_bp.route('/<int:room_id>/shutdown', methods=['POST'])
+@jwt_required()
+def shutdown_room(room_id):
+    """Shutdown a room by removing all members (admin only)"""
+    if not require_admin():
+        return jsonify({'error': 'Admin access required'}), 403
+
+    room = Room.find_by_id(room_id)
+
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+
+    # Get members before removing them
+    members = Room.get_members(room_id)
+    member_count = len(members)
+
+    # Remove all members from the room
+    for member in members:
+        Room.remove_member(room_id, member['id'])
+
+    return jsonify({
+        'message': f'Room shutdown successfully - removed {member_count} member(s)',
+        'room': {
+            'id': room_id,
+            'room_code': room['room_code'],
+            'name': room['name'],
+            'removed_members': member_count
+        }
+    }), 200
+
 @rooms_bp.route('/<int:room_id>', methods=['DELETE'])
 @jwt_required()
 def delete_room(room_id):
