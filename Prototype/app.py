@@ -26,6 +26,7 @@ from routes.glossary import glossary_bp
 
 # Create Flask app
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_change_in_production')

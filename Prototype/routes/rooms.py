@@ -41,6 +41,40 @@ def get_all_rooms():
     rooms = Room.get_all_rooms()
     return jsonify({'rooms': rooms}), 200
 
+@rooms_bp.route('/active', methods=['GET'])
+@jwt_required()
+def get_active_rooms():
+    """Get all active rooms with member information (admin only)"""
+    if not require_admin():
+        return jsonify({'error': 'Admin access required'}), 403
+
+    all_rooms = Room.get_all_rooms()
+
+    # Enhance each room with additional info
+    active_rooms = []
+    for room in all_rooms:
+        room_info = {
+            'id': room['id'],
+            'room_code': room['room_code'],
+            'name': room['name'],
+            'created_by': room['created_by'],
+            'creator_name': room.get('creator_name', 'System'),
+            'created_at': room['created_at'],
+            'member_count': room.get('member_count', 0),
+            'is_demo': room['room_code'] == Room.DEMO_ROOM_CODE,
+            'can_delete': room['room_code'] != Room.DEMO_ROOM_CODE
+        }
+
+        # Get progress stats
+        stats = Room.get_room_stats(room['id'])
+        room_info['completed_modules'] = stats['completed_modules']
+        room_info['total_modules'] = 6
+        room_info['progress_percentage'] = (len(stats['completed_modules']) / 6) * 100
+
+        active_rooms.append(room_info)
+
+    return jsonify({'rooms': active_rooms}), 200
+
 @rooms_bp.route('/<int:room_id>', methods=['GET'])
 @jwt_required()
 def get_room(room_id):
@@ -151,18 +185,94 @@ def reset_room_progress(room_id):
         'room_id': room_id
     }), 200
 
+@rooms_bp.route('/bulk-delete', methods=['POST'])
+@jwt_required()
+def bulk_delete_rooms():
+    """Delete multiple rooms at once (admin only, cannot delete demo room)"""
+    if not require_admin():
+        return jsonify({'error': 'Admin access required'}), 403
+
+    data = request.get_json()
+    room_ids = data.get('room_ids', [])
+
+    if not room_ids or not isinstance(room_ids, list):
+        return jsonify({'error': 'room_ids array is required'}), 400
+
+    deleted = []
+    failed = []
+    protected = []
+
+    for room_id in room_ids:
+        room = Room.find_by_id(room_id)
+
+        if not room:
+            failed.append({'id': room_id, 'reason': 'Room not found'})
+            continue
+
+        # Check if it's the demo room
+        if Room.is_demo_room(room_id):
+            protected.append({
+                'id': room_id,
+                'room_code': room['room_code'],
+                'name': room['name'],
+                'reason': 'Demo room is protected'
+            })
+            continue
+
+        try:
+            # Delete the room
+            Room.delete_room(room_id)
+            deleted.append({
+                'id': room_id,
+                'room_code': room['room_code'],
+                'name': room['name']
+            })
+        except Exception as e:
+            failed.append({'id': room_id, 'reason': str(e)})
+
+    return jsonify({
+        'message': f'Deleted {len(deleted)} room(s)',
+        'deleted': deleted,
+        'protected': protected,
+        'failed': failed,
+        'summary': {
+            'deleted_count': len(deleted),
+            'protected_count': len(protected),
+            'failed_count': len(failed)
+        }
+    }), 200
+
 @rooms_bp.route('/<int:room_id>', methods=['DELETE'])
 @jwt_required()
 def delete_room(room_id):
-    """Delete a room (admin only)"""
+    """Delete a room (admin only, cannot delete demo room)"""
     if not require_admin():
         return jsonify({'error': 'Admin access required'}), 403
-    
+
     room = Room.find_by_id(room_id)
-    
+
     if not room:
         return jsonify({'error': 'Room not found'}), 404
-    
+
+    # Check if it's the demo room
+    if Room.is_demo_room(room_id):
+        return jsonify({
+            'error': 'Cannot delete the demo room',
+            'message': 'The demo room is protected and cannot be deleted. You can reset its progress instead.'
+        }), 403
+
+    # Get room info before deletion for response
+    room_code = room['room_code']
+    room_name = room['name']
+
+    # Delete the room
     Room.delete_room(room_id)
-    
-    return jsonify({'message': 'Room deleted successfully'}), 200
+
+    return jsonify({
+        'message': 'Room deleted successfully',
+        'deleted_room': {
+            'id': room_id,
+            'room_code': room_code,
+            'name': room_name
+        }
+    }), 200
