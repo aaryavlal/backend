@@ -50,7 +50,6 @@ CORS(app, resources={r"/api/*": cors_config})
 # Initialize JWT
 jwt = JWTManager(app)
 
-<<<<<<< HEAD
 # Initialize rate limiter
 limiter = Limiter(
     app=app,
@@ -61,7 +60,6 @@ limiter = Limiter(
 )
 
 # Register blueprints
-=======
 # -----------------------------
 # Gemini client + quiz config
 # -----------------------------
@@ -189,7 +187,6 @@ Student answer:
 # -----------------------------
 # Existing routes
 # -----------------------------
->>>>>>> 93ab567 (change to protype app.py for api quiz grading)
 app.register_blueprint(auth_bp)
 app.register_blueprint(rooms_bp)
 app.register_blueprint(progress_bp)
