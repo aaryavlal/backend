@@ -60,17 +60,9 @@ limiter = Limiter(
     strategy="fixed-window"
 )
 
-# Register blueprints
-# -----------------------------
-# Gemini client + quiz config
-# -----------------------------
-# -----------------------------------------
-# Force Gemini API key (explicit hard-coded)
-# -----------------------------------------
-GEMINI_API_KEY = "AIzaSyD7i4Wt6kTyWt0LqOT6RTn_uL9ax8jxjPg"
 
+GEMINI_API_KEY = "" #insert api key here if you want to use the Gemini grading feature
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-
 
 QUESTION = (
     "In your own words, explain what parallel computing is and give one real-world "
@@ -108,6 +100,62 @@ Return ONLY valid JSON in exactly this format:
 }
 """
 
+# ----------------------------------------------------
+# LIST USED TO MANAGE PROGRAM COMPLEXITY (BACKEND)
+# ----------------------------------------------------
+# This list stores a history of recent quiz attempts.
+# It is used by summarize_attempts to build feedback
+# about the user's overall performance.
+RECENT_ATTEMPTS = []
+
+
+# ----------------------------------------------------------------
+# STUDENT-DEVELOPED PROCEDURE WITH LIST + SEQUENCING/SELECTION/LOOP
+# ----------------------------------------------------------------
+def summarize_attempts(attempts, max_items=5):
+    """
+    Build a short summary of recent quiz attempts.
+
+    Parameters:
+        attempts: list of attempt dictionaries (each has 'score' and 'max_score')
+        max_items: maximum number of recent attempts to include
+
+    Returns:
+        Multi-line string describing performance history.
+    """
+
+    # --- SEQUENCING: set up early-return and data structures in order ---
+    if not attempts:
+        return "No attempts have been recorded yet."
+
+    summary_lines = []
+
+    # --- ITERATION: loop through the last max_items attempts (from newest to oldest) ---
+    start_index = len(attempts) - 1
+    end_index = max(-1, len(attempts) - 1 - max_items)
+
+    for index in range(start_index, end_index, -1):
+        attempt = attempts[index]
+        score = attempt["score"]
+        max_score = attempt["max_score"]
+
+        # --- SELECTION: choose a label based on score ---
+        if score == max_score:
+            label = "Perfect"
+        elif score > 0:
+            label = "Partial"
+        else:
+            label = "No credit"
+
+        summary_lines.append(
+            f"Attempt {index + 1}: {label} ({score}/{max_score})"
+        )
+
+    # --- SEQUENCING: combine the lines into a single summary string ---
+    summary_text = "\n".join(summary_lines)
+    return summary_text
+
+
 # -----------------------------
 # QUIZ GRADING ENDPOINT
 # -----------------------------
@@ -120,6 +168,7 @@ def grade_quiz():
             "error": "Gemini API is not configured on the server (GEMINI_API_KEY missing)."
         }), 500
 
+    # ---- INPUT FROM USER (body JSON field 'answer') ----
     data = request.get_json(silent=True) or {}
     student_answer = (data.get("answer") or "").strip()
 
@@ -135,8 +184,7 @@ Rubric:
 {RUBRIC}
 
 Student answer:
-\"\"\"{student_answer}\"\"\"
-"""
+\"\"\"{student_answer}\"\"\""""
 
     try:
         # Ask Gemini for a JSON response
@@ -146,26 +194,21 @@ Student answer:
             config={"response_mime_type": "application/json"},
         )
 
-        # Prefer parsed JSON if available
         result = getattr(gemini_response, "parsed", None)
         raw_text = getattr(gemini_response, "text", "")
 
-        # Normalize result to a dict
         if isinstance(result, dict):
             graded = result
         else:
-            # Fallback: try to parse raw_text as JSON
             try:
                 graded = json.loads(raw_text)
             except Exception:
-                # Final fallback: wrap raw text in a valid JSON object
                 graded = {
                     "score": 0,
                     "max_score": 3,
                     "feedback": raw_text or "Model returned an unexpected response."
                 }
 
-        # Ensure required keys exist
         graded_score = graded.get("score", 0)
         graded_max = graded.get("max_score", 3)
         graded_feedback = graded.get("feedback", "No feedback provided.")
@@ -176,8 +219,20 @@ Student answer:
             "feedback": str(graded_feedback),
         }
 
+        # ---------------------------------------------------------
+        # USE THE LIST + PROCEDURE TO GENERATE ATTEMPT HISTORY
+        # ---------------------------------------------------------
+        RECENT_ATTEMPTS.append({
+            "score": safe_payload["score"],
+            "max_score": safe_payload["max_score"],
+        })
+
+        attempt_summary = summarize_attempts(RECENT_ATTEMPTS)
+        safe_payload["attempt_summary"] = attempt_summary
+
         print(">>> Gemini graded:", safe_payload)
 
+        # ---- OUTPUT: JSON based on input and program functionality ----
         return jsonify(safe_payload), 200
 
     except Exception as e:
@@ -186,6 +241,7 @@ Student answer:
             "error": "Gemini API call failed.",
             "details": str(e)
         }), 500
+
 
 # -----------------------------
 # Existing routes
@@ -198,7 +254,6 @@ app.register_blueprint(glossary_bp)
 # Security headers middleware
 @app.after_request
 def add_security_headers(response):
-    """Add security headers to all responses"""
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
