@@ -12,6 +12,11 @@ from api.jwt_authorize import token_required
 import bcrypt
 import sqlite3
 import os
+from flask_restful import Api, Resource
+import json
+import random
+import os
+import fcntl
 
 
 # import "objects" from "this" project
@@ -140,6 +145,111 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(rooms_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(glossary_bp)
+
+# --- Jokes API Resources ---
+api = Api(app)
+
+class JokesAPI(Resource):
+    def get(self):
+        jokes_file = os.path.join(current_app.config['DATA_FOLDER'], 'jokes.json')
+        if not os.path.exists(jokes_file):
+            return jsonify([])
+        with open(jokes_file, 'r') as f:
+            jokes = json.load(f)
+        return jsonify(jokes)
+
+class JokeByIDAPI(Resource):
+    def get(self, joke_id):
+        jokes_file = os.path.join(current_app.config['DATA_FOLDER'], 'jokes.json')
+        if not os.path.exists(jokes_file):
+            return jsonify(None), 404
+        with open(jokes_file, 'r') as f:
+            jokes = json.load(f)
+        if 0 <= joke_id < len(jokes):
+            return jsonify(jokes[joke_id])
+        return jsonify(None), 404
+
+class RandomJokeAPI(Resource):
+    def get(self):
+        jokes_file = os.path.join(current_app.config['DATA_FOLDER'], 'jokes.json')
+        if not os.path.exists(jokes_file):
+            return jsonify(None), 404
+        with open(jokes_file, 'r') as f:
+            jokes = json.load(f)
+        if jokes:
+            return jsonify(random.choice(jokes))
+        return jsonify(None), 404
+
+class JokeCountAPI(Resource):
+    def get(self):
+        jokes_file = os.path.join(current_app.config['DATA_FOLDER'], 'jokes.json')
+        if not os.path.exists(jokes_file):
+            return jsonify({'count': 0})
+        with open(jokes_file, 'r') as f:
+            jokes = json.load(f)
+        return jsonify({'count': len(jokes)})
+
+class JokeHahaAPI(Resource):
+    def put(self, joke_id):
+        jokes_file = os.path.join(current_app.config['DATA_FOLDER'], 'jokes.json')
+        if not os.path.exists(jokes_file):
+            return jsonify(None), 404
+        try:
+            with open(jokes_file, 'r+') as f:
+                fcntl.flock(f, fcntl.LOCK_EX)
+                try:
+                    jokes = json.load(f)
+                    if 0 <= joke_id < len(jokes):
+                        jokes[joke_id]['haha'] = jokes[joke_id].get('haha', 0) + 1
+                        f.seek(0)
+                        json.dump(jokes, f, indent=2)
+                        f.truncate()
+                        result = jokes[joke_id]
+                    else:
+                        result = None
+                finally:
+                    fcntl.flock(f, fcntl.LOCK_UN)
+                if result:
+                    return jsonify(result)
+                return jsonify(None), 404
+        except Exception as e:
+            print(f'Error updating haha vote: {e}')
+            return jsonify({'error': str(e)}), 500
+
+class JokeBoohooAPI(Resource):
+    def put(self, joke_id):
+        jokes_file = os.path.join(current_app.config['DATA_FOLDER'], 'jokes.json')
+        if not os.path.exists(jokes_file):
+            return jsonify(None), 404
+        try:
+            with open(jokes_file, 'r+') as f:
+                fcntl.flock(f, fcntl.LOCK_EX)
+                try:
+                    jokes = json.load(f)
+                    if 0 <= joke_id < len(jokes):
+                        jokes[joke_id]['boohoo'] = jokes[joke_id].get('boohoo', 0) + 1
+                        f.seek(0)
+                        json.dump(jokes, f, indent=2)
+                        f.truncate()
+                        result = jokes[joke_id]
+                    else:
+                        result = None
+                finally:
+                    fcntl.flock(f, fcntl.LOCK_UN)
+                if result:
+                    return jsonify(result)
+                return jsonify(None), 404
+        except Exception as e:
+            print(f'Error updating boohoo vote: {e}')
+            return jsonify({'error': str(e)}), 500
+
+# Register jokes routes
+api.add_resource(JokesAPI, '/api/jokes', '/api/jokes/')
+api.add_resource(JokeByIDAPI, '/api/jokes/<int:joke_id>', '/api/jokes/<int:joke_id>/')
+api.add_resource(RandomJokeAPI, '/api/jokes/random', '/api/jokes/random/')
+api.add_resource(JokeCountAPI, '/api/jokes/count', '/api/jokes/count/')
+api.add_resource(JokeHahaAPI, '/api/jokes/<int:joke_id>/haha', '/api/jokes/<int:joke_id>/haha/')
+api.add_resource(JokeBoohooAPI, '/api/jokes/<int:joke_id>/boohoo', '/api/jokes/<int:joke_id>/boohoo/')
 
 # Jokes file initialization
 with app.app_context():
