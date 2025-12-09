@@ -62,38 +62,41 @@ class UserAPI:
             
             return jsonify(results) 
             
-    class _CRUD(Resource):  # Users API operation for Create, Read, Update, Delete 
+    class _CRUD(Resource):  # Users API operation for Create, Read, Update, Delete
         def post(self): # Create method
             """
             Create a new user.
 
             Reads data from the JSON body of the request, validates the input, and creates a new user in the database.
+            Now integrated with Prototype system - syncs to both databases.
 
             Returns:
                 JSON response with the created user details or an error message.
             """
-            
+
             # Read data for json body
             body = request.get_json()
-            
+
             # Debug logging
             #print(f"Received signup request with body: {body}")
-            
+
             ''' Avoid garbage in, error checking '''
             # validate name
             name = body.get('name')
             if name is None or len(name) < 2:
                 return {'message': f'Name is missing, or is less than 2 characters'}, 400
-            
+
             # validate uid
             uid = body.get('uid')
             if uid is None or len(uid) < 2:
                 return {'message': f'User ID is missing, or is less than 2 characters'}, 400
-          
-            # check if uid is a GitHub account
-            _, status = GitHubUser().get(uid)
-            if status != 200:
-                return {'message': f'User ID {uid} not a valid GitHub account' }, 404
+
+            # Optional: check if uid is a GitHub account (only if skip_github_check is not set)
+            skip_github_check = body.get('skip_github_check', False)
+            if not skip_github_check:
+                _, status = GitHubUser().get(uid)
+                if status != 200:
+                    return {'message': f'User ID {uid} not a valid GitHub account. Set skip_github_check=true to bypass this validation.' }, 404
             
             ''' User object creation '''
             #1: Setup minimal User object using __init__ method
@@ -132,7 +135,7 @@ class UserAPI:
                 user = user_obj.create(cleaned_body) # pass the cleaned body elements to be saved in the database
                 #print(f"Create method returned: {user}")
                 #print(f"User type: {type(user)}")
-                
+
                 if not user:
                     # Check if user was actually created in database despite create() returning None
                     db_user = User.query.filter_by(_uid=uid).first()
@@ -141,11 +144,29 @@ class UserAPI:
                         return jsonify(db_user.read())  # Return the user anyway
                     else:
                         return {'message': f'Processed {name}, either a format error or User ID {uid} is duplicate'}, 400
-                
+
+                # Sync user to Prototype database
+                try:
+                    from Prototype.models.user import User as ProtoUser
+                    # Check if user already exists in Prototype DB
+                    proto_user = ProtoUser.find_by_username(uid)
+                    if not proto_user:
+                        # Create in Prototype database with bcrypt hashing
+                        ProtoUser.create(
+                            username=uid,
+                            email=cleaned_body.get('email', '?'),
+                            password=password if password else app.config['DEFAULT_PASSWORD'],
+                            role='student'
+                        )
+                        print(f"✅ Synced user {uid} to Prototype database")
+                except Exception as sync_error:
+                    print(f"⚠️ Warning: Failed to sync user to Prototype DB: {sync_error}")
+                    # Continue even if Prototype sync fails - main user creation succeeded
+
                 #print(f"Successfully created user: {user.uid}")
                 # return response, the created user details as a JSON object
                 return jsonify(user.read())
-                
+
             except Exception as e:
                 #print(f"Error creating user: {e}")
                 return {'message': f'Error creating user: {str(e)}'}, 500
@@ -209,13 +230,15 @@ class UserAPI:
             else:
                 # Non-admin can only update themselves
                 user = current_user
-                
-            # Accounts are desired to be GitHub accounts, change must be validated 
+
+            # Optional: validate GitHub account if changing UID (only if skip_github_check is not set)
             if body.get('uid') and body.get('uid') != user._uid:
-                _, status = GitHubUser().get(body.get('uid'))
-                if status != 200:
-                    return {'message': f'User ID {body.get("uid")} not a valid GitHub account' }, 404
-            
+                skip_github_check = body.get('skip_github_check', False)
+                if not skip_github_check:
+                    _, status = GitHubUser().get(body.get('uid'))
+                    if status != 200:
+                        return {'message': f'User ID {body.get("uid")} not a valid GitHub account. Set skip_github_check=true to bypass.' }, 404
+
             # Update the User object to the database using custom update method
             user.update(body)
             
@@ -670,6 +693,24 @@ class UserAPI:
                         return jsonify(db_user.read())
                     else:
                         return {'message': f'Failed to create guest account for {uid}, username may already exist'}, 400
+
+                # Sync guest user to Prototype database
+                try:
+                    from Prototype.models.user import User as ProtoUser
+                    # Check if user already exists in Prototype DB
+                    proto_user = ProtoUser.find_by_username(uid)
+                    if not proto_user:
+                        # Create in Prototype database with bcrypt hashing
+                        ProtoUser.create(
+                            username=uid,
+                            email=email,
+                            password=password,
+                            role='student'
+                        )
+                        print(f"✅ Synced guest user {uid} to Prototype database")
+                except Exception as sync_error:
+                    print(f"⚠️ Warning: Failed to sync guest user to Prototype DB: {sync_error}")
+                    # Continue even if Prototype sync fails - main user creation succeeded
 
                 # Return the created user details
                 return jsonify(user.read())

@@ -31,9 +31,10 @@ def register():
         return jsonify({'error': result}), 400
     username = result
 
-    # Validate email
+    # Validate email (allow simple formats or placeholders)
     email = data['email'].strip()
-    if not validate_email(email):
+    # Allow '?' as a placeholder email for compatibility with main system
+    if email != '?' and not validate_email(email):
         return jsonify({'error': 'Invalid email format'}), 400
 
     # Validate password

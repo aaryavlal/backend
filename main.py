@@ -1,5 +1,5 @@
 # imports from flask
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urljoin, urlparse
 from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app, g # import render_template from "public" flask libraries
 from flask_login import current_user, login_user, logout_user
@@ -9,6 +9,9 @@ from flask import current_app
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 from api.jwt_authorize import token_required
+import bcrypt
+import sqlite3
+import os
 
 
 # import "objects" from "this" project
@@ -30,6 +33,17 @@ from hacks.joke import scenario_api  # Import the joke API blueprint
 from api.post import post_api  # Import the social media post API
 from api.quiz_api import quiz_api
 #from api.announcement import announcement_api ##temporary revert
+
+# Import Prototype blueprints
+import sys
+prototype_path = os.path.join(os.path.dirname(__file__), 'Prototype')
+if prototype_path not in sys.path:
+    sys.path.insert(0, prototype_path)
+
+from Prototype.routes.auth import auth_bp
+from Prototype.routes.rooms import rooms_bp
+from Prototype.routes.progress import progress_bp
+from Prototype.routes.glossary import glossary_bp
 
 # database Initialization functions
 from model.user import User, initUsers
@@ -60,6 +74,43 @@ app.config['KASM_SERVER'] = os.getenv('KASM_SERVER')
 app.config['KASM_API_KEY'] = os.getenv('KASM_API_KEY')
 app.config['KASM_API_KEY_SECRET'] = os.getenv('KASM_API_KEY_SECRET')
 
+# Prototype database path
+PROTOTYPE_DB_PATH = os.path.join(os.path.dirname(__file__), 'Prototype', 'database.db')
+
+# JWT Configuration for Prototype integration
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
+
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your_jwt_secret_key_change_in_production')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+
+# Initialize JWT
+jwt = JWTManager(app)
+
+# Configure CORS for Prototype API endpoints
+cors_config = {
+    "origins": os.environ.get('CORS_ORIGINS', '*').split(','),
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"],
+    "expose_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True,
+    "max_age": 3600
+}
+CORS(app, resources={r"/api/*": cors_config})
+
+# JWT error handlers
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({'error': 'Token has expired'}), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return jsonify({'error': 'Invalid token'}), 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    return jsonify({'error': 'Authorization token required'}), 401
+
 
 
 # register URIs for api endpoints
@@ -84,6 +135,12 @@ app.register_blueprint(post_api)  # Register the social media post API
 # app.register_blueprint(announcement_api) ##temporary revert
 app.register_blueprint(quiz_api)
 
+# Register Prototype blueprints
+app.register_blueprint(auth_bp)
+app.register_blueprint(rooms_bp)
+app.register_blueprint(progress_bp)
+app.register_blueprint(glossary_bp)
+
 # Jokes file initialization
 with app.app_context():
     initScenarios()
@@ -92,6 +149,15 @@ with app.app_context():
     except Exception:
         # ignore if tables/migrations are not present yet
         pass
+
+# Initialize Prototype database
+from Prototype.database import init_db as init_prototype_db
+from Prototype.models.room import Room
+
+init_prototype_db()
+demo_room = Room.ensure_demo_room_exists()
+print("✅ Prototype database initialized")
+print(f"✅ Demo room available: {Room.DEMO_ROOM_CODE}")
 
 # Tell Flask-Login the view function name of your login route
 login_manager.login_view = "login"
@@ -115,19 +181,91 @@ def is_safe_url(target):
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
+# Helper function to check Prototype database for user
+def check_prototype_user(username, password):
+    """Check if user exists in Prototype database and validate password"""
+    try:
+        if not os.path.exists(PROTOTYPE_DB_PATH):
+            return None
+
+        conn = sqlite3.connect(PROTOTYPE_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        proto_user = cursor.fetchone()
+        conn.close()
+
+        if proto_user and bcrypt.checkpw(password.encode('utf-8'), proto_user['password'].encode('utf-8')):
+            return dict(proto_user)
+        return None
+    except Exception as e:
+        print(f"Error checking Prototype database: {e}")
+        return None
+
+# Helper function to sync Prototype user to main database
+def sync_prototype_user_to_main(proto_user, plain_password):
+    """Sync a Prototype user to the main SQLAlchemy database"""
+    try:
+        # Check if user already exists in main database
+        existing_user = User.query.filter_by(_uid=proto_user['username']).first()
+
+        if existing_user:
+            # User exists, just return it (password is valid since we authenticated)
+            return existing_user
+
+        # Create new user in main database
+        new_user = User(
+            name=proto_user.get('username', proto_user['username']),
+            uid=proto_user['username'],
+            password=plain_password,  # Will be hashed by User.__init__
+            role='User'
+        )
+        new_user._email = proto_user.get('email', '?')
+
+        db.session.add(new_user)
+        db.session.commit()
+        return new_user
+    except Exception as e:
+        print(f"Error syncing Prototype user: {e}")
+        db.session.rollback()
+        return None
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     next_page = request.args.get('next', '') or request.form.get('next', '')
     if request.method == 'POST':
-        user = User.query.filter_by(_uid=request.form['username']).first()
-        if user and user.is_password(request.form['password']):
+        username = request.form['username']
+        password = request.form['password']
+
+        # First, try to authenticate with the main database
+        user = User.query.filter_by(_uid=username).first()
+
+        if user and user.is_password(password):
+            # Main database authentication successful
             login_user(user)
             if not is_safe_url(next_page):
                 return abort(400)
             return redirect(next_page or url_for('index'))
+
+        # If main database auth fails, check Prototype database
+        proto_user = check_prototype_user(username, password)
+
+        if proto_user:
+            # Prototype user found - sync to main database
+            synced_user = sync_prototype_user_to_main(proto_user, password)
+
+            if synced_user:
+                login_user(synced_user)
+                if not is_safe_url(next_page):
+                    return abort(400)
+                return redirect(next_page or url_for('index'))
+            else:
+                error = 'Error syncing user account. Please try again.'
         else:
             error = 'Invalid username or password.'
+
     return render_template("login.html", error=error, next=next_page)
 
 @app.route('/studytracker')  # route for the study tracker page

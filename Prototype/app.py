@@ -62,7 +62,7 @@ limiter = Limiter(
 
 
 GEMINI_API_KEY = "" #insert api key here if you want to use the Gemini grading feature
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+#gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 QUESTION = (
     "In your own words, explain what parallel computing is and give one real-world "
