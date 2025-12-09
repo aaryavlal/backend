@@ -1,0 +1,110 @@
+[
+  {
+    "id": 0,
+    "joke": "If you give someone a program... you will frustrate them for a day; if you teach them how to program... you will frustrate them for a lifetime.",
+    "haha": 22,
+    "boohoo": 17
+  },
+  {
+    "id": 1,
+    "joke": "Q: Why did I divide sin by tan? A: Just cos.",
+    "haha": 0,
+    "boohoo": 2
+  },
+  {
+    "id": 2,
+    "joke": "UNIX is basically a simple operating system... but you have to be a genius to understand the simplicity.",
+    "haha": 0,
+    "boohoo": 0
+  },
+  {
+    "id": 3,
+    "joke": "Enter any 11-digit prime number to continue.",
+    "haha": 0,
+    "boohoo": 2
+  },
+  {
+    "id": 4,
+    "joke": "If at first you don't succeed; call it version 1.0.",
+    "haha": 1,
+    "boohoo": 0
+  },
+  {
+    "id": 5,
+    "joke": "Java programmers are some of the most materialistic people I know, very object-oriented",
+    "haha": 3,
+    "boohoo": 0
+  },
+  {
+    "id": 6,
+    "joke": "The oldest computer can be traced back to Adam and Eve. It was an apple but with extremely limited memory. Just 1 byte. And then everything crashed.",
+    "haha": 0,
+    "boohoo": 0
+  },
+  {
+    "id": 7,
+    "joke": "Q: Why did Wi-Fi and the computer get married? A: Because they had a connection",
+    "haha": 0,
+    "boohoo": 0
+  },
+  {
+    "id": 8,
+    "joke": "Bill Gates teaches a kindergarten class to count to ten. 1, 2, 3, 3.1, 95, 98, ME, 2000, XP, Vista, 7, 8, 10.",
+    "haha": 0,
+    "boohoo": 0
+  },
+  {
+    "id": 9,
+    "joke": "Q: What\u2019s a aliens favorite computer key? A: the space bar!",
+    "haha": 0,
+    "boohoo": 1
+  },
+  {
+    "id": 10,
+    "joke": "There are 10 types of people in the world: those who understand binary, and those who don\u2019t.",
+    "haha": 0,
+    "boohoo": 0
+  },
+  {
+    "id": 11,
+    "joke": "If it wasn't for C, we\u2019d all be programming in BASI and OBOL.",
+    "haha": 0,
+    "boohoo": 0
+  },
+  {
+    "id": 12,
+    "joke": "Computers make very fast, very accurate mistakes.",
+    "haha": 1,
+    "boohoo": 0
+  },
+  {
+    "id": 13,
+    "joke": "Q: Why is it that programmers always confuse Halloween with Christmas? A: Because 31 OCT = 25 DEC.",
+    "haha": 1,
+    "boohoo": 0
+  },
+  {
+    "id": 14,
+    "joke": "Q: How many programmers does it take to change a light bulb? A: None. It\u2019s a hardware problem.",
+    "haha": 5,
+    "boohoo": 6
+  },
+  {
+    "id": 15,
+    "joke": "The programmer got stuck in the shower because the instructions on the shampoo bottle said: Lather, Rinse, Repeat.",
+    "haha": 0,
+    "boohoo": 0
+  },
+  {
+    "id": 16,
+    "joke": "Q: What is the biggest lie in the entire universe? A: I have read and agree to the Terms and Conditions.",
+    "haha": 1,
+    "boohoo": 1
+  },
+  {
+    "id": 17,
+    "joke": "An SQL statement walks into a bar and sees two tables. It approaches, and asks may I join you?",
+    "haha": 2,
+    "boohoo": 1
+  }
+]
