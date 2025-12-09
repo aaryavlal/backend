@@ -1,6 +1,6 @@
-# Parallel Computing Education Platform - Backend
+# Quest Model - Educational Platform Backend
 
-A Flask-based REST API for the Parallel Computing educational platform with community room-based learning.
+A Flask-based REST API for the Quest educational platform with community room-based learning.
 
 ## 🎯 Features
 
@@ -51,7 +51,7 @@ The server will start on `http://localhost:5000`
 ## 📁 Project Structure
 
 ```
-parallel-computing-backend/
+quest-backend/
 ├── app.py                 # Main Flask application
 ├── database.py            # SQLite database configuration
 ├── requirements.txt       # Python dependencies
@@ -286,7 +286,7 @@ curl -X POST http://localhost:5000/api/progress/complete \
 
 ## 🤝 Contributing
 
-This is a prototype backend. Future enhancements could include:
+This is the Quest educational backend. Future enhancements could include:
 - WebSocket support for real-time progress updates
 - Email notifications when rooms complete modules
 - Analytics dashboard for admins
@@ -295,4 +295,4 @@ This is a prototype backend. Future enhancements could include:
 
 ## 📄 License
 
-Educational prototype - feel free to use and modify as needed.
+Educational project - feel free to use and modify as needed.

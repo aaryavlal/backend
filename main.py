@@ -39,16 +39,16 @@ from api.post import post_api  # Import the social media post API
 from api.quiz_api import quiz_api
 #from api.announcement import announcement_api ##temporary revert
 
-# Import Prototype blueprints
+# Import Quest blueprints
 import sys
-prototype_path = os.path.join(os.path.dirname(__file__), 'Prototype')
-if prototype_path not in sys.path:
-    sys.path.insert(0, prototype_path)
+quest_path = os.path.join(os.path.dirname(__file__), 'Quest')
+if quest_path not in sys.path:
+    sys.path.insert(0, quest_path)
 
-from Prototype.routes.auth import auth_bp
-from Prototype.routes.rooms import rooms_bp
-from Prototype.routes.progress import progress_bp
-from Prototype.routes.glossary import glossary_bp
+from Quest.routes.auth import auth_bp
+from Quest.routes.rooms import rooms_bp
+from Quest.routes.progress import progress_bp
+from Quest.routes.glossary import glossary_bp
 
 # database Initialization functions
 from model.user import User, initUsers
@@ -79,10 +79,10 @@ app.config['KASM_SERVER'] = os.getenv('KASM_SERVER')
 app.config['KASM_API_KEY'] = os.getenv('KASM_API_KEY')
 app.config['KASM_API_KEY_SECRET'] = os.getenv('KASM_API_KEY_SECRET')
 
-# Prototype database path
-PROTOTYPE_DB_PATH = os.path.join(os.path.dirname(__file__), 'Prototype', 'database.db')
+# Quest database path
+QUEST_DB_PATH = os.path.join(os.path.dirname(__file__), 'Quest', 'database.db')
 
-# JWT Configuration for Prototype integration
+# JWT Configuration for Quest integration
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 
@@ -141,7 +141,7 @@ app.register_blueprint(post_api)  # Register the social media post API
 # app.register_blueprint(announcement_api) ##temporary revert
 app.register_blueprint(quiz_api)
 
-# Register Prototype blueprints
+# Register Quest blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(rooms_bp)
 app.register_blueprint(progress_bp)
@@ -261,13 +261,13 @@ with app.app_context():
         # ignore if tables/migrations are not present yet
         pass
 
-# Initialize Prototype database
-from Prototype.database import init_db as init_prototype_db
-from Prototype.models.room import Room
+# Initialize Quest database
+from Quest.database import init_db as init_quest_db
+from Quest.models.room import Room
 
-init_prototype_db()
+init_quest_db()
 demo_room = Room.ensure_demo_room_exists()
-print("✅ Prototype database initialized")
+print("✅ Quest database initialized")
 print(f"✅ Demo room available: {Room.DEMO_ROOM_CODE}")
 
 # Tell Flask-Login the view function name of your login route
@@ -292,34 +292,34 @@ def is_safe_url(target):
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
-# Helper function to check Prototype database for user
-def check_prototype_user(username, password):
-    """Check if user exists in Prototype database and validate password"""
+# Helper function to check Quest database for user
+def check_quest_user(username, password):
+    """Check if user exists in Quest database and validate password"""
     try:
-        if not os.path.exists(PROTOTYPE_DB_PATH):
+        if not os.path.exists(QUEST_DB_PATH):
             return None
 
-        conn = sqlite3.connect(PROTOTYPE_DB_PATH)
+        conn = sqlite3.connect(QUEST_DB_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
-        proto_user = cursor.fetchone()
+        quest_user = cursor.fetchone()
         conn.close()
 
-        if proto_user and bcrypt.checkpw(password.encode('utf-8'), proto_user['password'].encode('utf-8')):
-            return dict(proto_user)
+        if quest_user and bcrypt.checkpw(password.encode('utf-8'), quest_user['password'].encode('utf-8')):
+            return dict(quest_user)
         return None
     except Exception as e:
-        print(f"Error checking Prototype database: {e}")
+        print(f"Error checking Quest database: {e}")
         return None
 
-# Helper function to sync Prototype user to main database
-def sync_prototype_user_to_main(proto_user, plain_password):
-    """Sync a Prototype user to the main SQLAlchemy database"""
+# Helper function to sync Quest user to main database
+def sync_quest_user_to_main(quest_user, plain_password):
+    """Sync a Quest user to the main SQLAlchemy database"""
     try:
         # Check if user already exists in main database
-        existing_user = User.query.filter_by(_uid=proto_user['username']).first()
+        existing_user = User.query.filter_by(_uid=quest_user['username']).first()
 
         if existing_user:
             # User exists, just return it (password is valid since we authenticated)
@@ -327,18 +327,18 @@ def sync_prototype_user_to_main(proto_user, plain_password):
 
         # Create new user in main database
         new_user = User(
-            name=proto_user.get('username', proto_user['username']),
-            uid=proto_user['username'],
+            name=quest_user.get('username', quest_user['username']),
+            uid=quest_user['username'],
             password=plain_password,  # Will be hashed by User.__init__
             role='User'
         )
-        new_user._email = proto_user.get('email', '?')
+        new_user._email = quest_user.get('email', '?')
 
         db.session.add(new_user)
         db.session.commit()
         return new_user
     except Exception as e:
-        print(f"Error syncing Prototype user: {e}")
+        print(f"Error syncing Quest user: {e}")
         db.session.rollback()
         return None
 
@@ -360,12 +360,12 @@ def login():
                 return abort(400)
             return redirect(next_page or url_for('index'))
 
-        # If main database auth fails, check Prototype database
-        proto_user = check_prototype_user(username, password)
+        # If main database auth fails, check Quest database
+        quest_user = check_quest_user(username, password)
 
-        if proto_user:
-            # Prototype user found - sync to main database
-            synced_user = sync_prototype_user_to_main(proto_user, password)
+        if quest_user:
+            # Quest user found - sync to main database
+            synced_user = sync_quest_user_to_main(quest_user, password)
 
             if synced_user:
                 login_user(synced_user)
