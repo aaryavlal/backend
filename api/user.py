@@ -156,7 +156,9 @@ class UserAPI:
                             username=uid,
                             email=cleaned_body.get('email', '?'),
                             password=password if password else app.config['DEFAULT_PASSWORD'],
-                            role='student'
+                            role='student',
+                            student_id=cleaned_body.get('sid'),
+                            github_id=cleaned_body.get('uid') if not skip_github_check else None
                         )
                         print(f"✅ Synced user {uid} to Prototype database")
                 except Exception as sync_error:
@@ -705,7 +707,9 @@ class UserAPI:
                             username=uid,
                             email=email,
                             password=password,
-                            role='student'
+                            role='student',
+                            student_id=None,
+                            github_id=None
                         )
                         print(f"✅ Synced guest user {uid} to Prototype database")
                 except Exception as sync_error:

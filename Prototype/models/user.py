@@ -3,16 +3,16 @@ from database import query_db, execute_db
 
 class User:
     @staticmethod
-    def create(username, email, password, role='student'):
+    def create(username, email, password, role='student', student_id=None, github_id=None):
         """Create a new user"""
         # Hash password
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        
+
         user_id = execute_db(
-            'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
-            (username, email, hashed.decode('utf-8'), role)
+            'INSERT INTO users (username, email, password, role, student_id, github_id) VALUES (?, ?, ?, ?, ?, ?)',
+            (username, email, hashed.decode('utf-8'), role, student_id, github_id)
         )
-        
+
         return User.find_by_id(user_id)
     
     @staticmethod
@@ -64,11 +64,30 @@ class User:
     def update_current_room(user_id, room_id):
         """Update user's current room"""
         execute_db('UPDATE users SET current_room_id = ? WHERE id = ?', (room_id, user_id))
-    
+
+    @staticmethod
+    def update_user(user_id, **kwargs):
+        """Update user details"""
+        allowed_fields = ['student_id', 'github_id', 'email']
+        updates = []
+        values = []
+
+        for field, value in kwargs.items():
+            if field in allowed_fields and value is not None:
+                updates.append(f"{field} = ?")
+                values.append(value)
+
+        if updates:
+            values.append(user_id)
+            query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+            execute_db(query, tuple(values))
+            return True
+        return False
+
     @staticmethod
     def get_all_users():
         """Get all users (excluding passwords)"""
-        users = query_db('SELECT id, username, email, role, current_room_id, created_at FROM users')
+        users = query_db('SELECT id, username, email, role, current_room_id, student_id, github_id, created_at FROM users')
         return [dict(user) for user in users]
     
     @staticmethod

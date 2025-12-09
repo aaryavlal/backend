@@ -33,7 +33,7 @@ def init_db():
     """Initialize the database with all necessary tables"""
     with get_db() as conn:
         cursor = conn.cursor()
-        
+
         # Users table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -43,10 +43,25 @@ def init_db():
                 password TEXT NOT NULL,
                 role TEXT DEFAULT 'student' CHECK(role IN ('student', 'admin')),
                 current_room_id INTEGER,
+                student_id TEXT,
+                github_id TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (current_room_id) REFERENCES rooms(id)
             )
         ''')
+
+        # Migration: Add student_id and github_id columns if they don't exist
+        try:
+            cursor.execute("SELECT student_id FROM users LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE users ADD COLUMN student_id TEXT")
+            print("✅ Added student_id column to users table")
+
+        try:
+            cursor.execute("SELECT github_id FROM users LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE users ADD COLUMN github_id TEXT")
+            print("✅ Added github_id column to users table")
         
         # Rooms table
         cursor.execute('''

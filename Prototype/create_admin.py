@@ -21,6 +21,10 @@ def create_admin():
     email = input("Enter admin email: ").strip()
     password = getpass.getpass("Enter admin password: ")
     password_confirm = getpass.getpass("Confirm password: ")
+
+    # Optional fields
+    student_id = input("Enter student ID (optional, press Enter to skip): ").strip() or None
+    github_id = input("Enter GitHub ID (optional, press Enter to skip): ").strip() or None
     
     # Validate inputs
     if not username or not email or not password:
@@ -42,11 +46,15 @@ def create_admin():
     
     # Create admin user
     try:
-        user = User.create(username, email, password, role='admin')
+        user = User.create(username, email, password, role='admin', student_id=student_id, github_id=github_id)
         print(f"\n✅ Admin user '{username}' created successfully!")
         print(f"   ID: {user['id']}")
         print(f"   Email: {user['email']}")
         print(f"   Role: {user['role']}")
+        if student_id:
+            print(f"   Student ID: {user['student_id']}")
+        if github_id:
+            print(f"   GitHub ID: {user['github_id']}")
     except Exception as e:
         print(f"❌ Error creating admin user: {e}")
 

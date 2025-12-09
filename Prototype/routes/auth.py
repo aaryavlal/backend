@@ -43,16 +43,20 @@ def register():
         return jsonify({'error': message}), 400
     password = data['password']
 
+    # Optional fields
+    student_id = data.get('student_id')
+    github_id = data.get('github_id')
+
     # Check if user already exists
     if User.find_by_username(username):
         return jsonify({'error': 'Username already exists'}), 400
 
-    if User.find_by_email(email):
+    if email != '?' and User.find_by_email(email):
         return jsonify({'error': 'Email already exists'}), 400
 
     # Create user
     try:
-        user = User.create(username, email, password)
+        user = User.create(username, email, password, student_id=student_id, github_id=github_id)
 
         # Remove password from response
         user.pop('password', None)
@@ -126,3 +130,41 @@ def get_current_user():
         user['current_room'] = None
 
     return jsonify({'user': user}), 200
+
+@auth_bp.route('/me', methods=['PUT'])
+@jwt_required()
+def update_current_user():
+    """Update current user profile"""
+    user_id = int(get_jwt_identity())
+    user = User.find_by_id(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Update optional fields
+    update_fields = {}
+    if 'student_id' in data:
+        update_fields['student_id'] = data['student_id']
+    if 'github_id' in data:
+        update_fields['github_id'] = data['github_id']
+    if 'email' in data:
+        email = data['email'].strip()
+        if email != '?' and not validate_email(email):
+            return jsonify({'error': 'Invalid email format'}), 400
+        update_fields['email'] = email
+
+    if update_fields:
+        User.update_user(user_id, **update_fields)
+
+    # Get updated user
+    updated_user = User.find_by_id(user_id)
+    updated_user.pop('password', None)
+
+    return jsonify({
+        'message': 'Profile updated successfully',
+        'user': updated_user
+    }), 200
