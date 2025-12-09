@@ -23,6 +23,11 @@ from routes.auth import auth_bp
 from routes.rooms import rooms_bp
 from routes.progress import progress_bp
 from routes.glossary import glossary_bp
+from routes.game_logs import game_logs_bp
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from hacks.joke import scenario_api
 
 # Create Flask app
 app = Flask(__name__)
@@ -32,6 +37,14 @@ app.url_map.strict_slashes = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_change_in_production')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your_jwt_secret_key_change_in_production')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+
+# Configure data folder for jokes/scenarios
+app.config['DATA_FOLDER'] = os.path.join(os.path.dirname(__file__), 'data')
+os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
+
+# Configure logs folder for game logging
+app.config['LOGS_FOLDER'] = os.path.join(os.path.dirname(__file__), 'logs')
+os.makedirs(app.config['LOGS_FOLDER'], exist_ok=True)
 
 # Security headers
 app.config['JSON_SORT_KEYS'] = False
@@ -250,6 +263,8 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(rooms_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(glossary_bp)
+app.register_blueprint(scenario_api)
+app.register_blueprint(game_logs_bp)
 
 # Security headers middleware
 @app.after_request
@@ -270,7 +285,9 @@ def index():
             'auth': '/api/auth',
             'rooms': '/api/rooms',
             'progress': '/api/progress',
-            'glossary': '/api/glossary'
+            'glossary': '/api/glossary',
+            'scenarios': '/api/scenarios',
+            'game_logs': '/api/game-logs'
         }
     })
 
@@ -316,10 +333,11 @@ def missing_token_callback(error):
 with app.app_context():
     init_db()
     demo_room = Room.ensure_demo_room_exists()
+    # Initialize scenarios
+    from hacks.jokes import initScenarios
+    initScenarios()
     print("✅ Flask app initialized")
     print(f"✅ Demo room available: {Room.DEMO_ROOM_CODE}")
-
-print(">>> RUNNING THIS app.py FILE")
 
 if __name__ == '__main__':
     print(">>> STARTING FLASK ON PORT 5000")
