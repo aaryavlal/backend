@@ -92,16 +92,17 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
 # Initialize JWT
 jwt = JWTManager(app)
 
-# Configure CORS for Prototype API endpoints
-cors_config = {
-    "origins": os.environ.get('CORS_ORIGINS', '*').split(','),
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"],
-    "expose_headers": ["Content-Type", "Authorization"],
-    "supports_credentials": True,
-    "max_age": 3600
-}
-CORS(app, resources={r"/api/*": cors_config})
+# Note: CORS is already configured in __init__.py
+# This secondary configuration is commented out to avoid conflicts
+# cors_config = {
+#     "origins": os.environ.get('CORS_ORIGINS', '*').split(','),
+#     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+#     "allow_headers": ["Content-Type", "Authorization"],
+#     "expose_headers": ["Content-Type", "Authorization"],
+#     "supports_credentials": True,
+#     "max_age": 3600
+# }
+# CORS(app, resources={r"/api/*": cors_config})
 
 # JWT error handlers
 @jwt.expired_token_loader

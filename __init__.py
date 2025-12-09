@@ -13,6 +13,7 @@ load_dotenv()
 
 # Setup of key Flask object (app)
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 # Configure Flask Port, default to 8587 which is same as Docker setup
 app.config['FLASK_PORT'] = int(os.environ.get('FLASK_PORT') or 8587)
@@ -40,7 +41,7 @@ cors = CORS(
        'https://open-coding-society.github.io',
        'https://pages.opencodingsociety.com',
    ],
-   methods=["GET", "POST", "PUT", "OPTIONS"]
+   methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 )
 
 
