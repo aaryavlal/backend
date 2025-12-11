@@ -1,7 +1,7 @@
 # imports from flask
 from datetime import datetime, timedelta
 from urllib.parse import urljoin, urlparse
-from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app, g # import render_template from "public" flask libraries
+from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app, g, Blueprint # import render_template from "public" flask libraries
 from flask_login import current_user, login_user, logout_user
 from flask.cli import AppGroup
 from flask_login import current_user, login_required
@@ -39,13 +39,12 @@ from api.post import post_api  # Import the social media post API
 from api.quiz_api import quiz_api
 #from api.announcement import announcement_api ##temporary revert
 
-# Import Quest blueprints
+# Import Quest blueprints (routes only - blueprint definition moved to this file)
 import sys
 quest_path = os.path.join(os.path.dirname(__file__), 'Quest')
 if quest_path not in sys.path:
     sys.path.insert(0, quest_path)
 
-from Quest.app import quest_bp
 from Quest.routes.auth import auth_bp
 from Quest.routes.rooms import rooms_bp
 from Quest.routes.progress import progress_bp
@@ -81,8 +80,245 @@ app.config['KASM_SERVER'] = os.getenv('KASM_SERVER')
 app.config['KASM_API_KEY'] = os.getenv('KASM_API_KEY')
 app.config['KASM_API_KEY_SECRET'] = os.getenv('KASM_API_KEY_SECRET')
 
+# Gemini configuration
+app.config['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
+app.config['GEMINI_SERVER'] = os.getenv(
+    'GEMINI_SERVER',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+)
+
+# Add google.genai import for Gemini API
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
+
 # Quest database path
 QUEST_DB_PATH = os.path.join(os.path.dirname(__file__), 'Quest', 'database.db')
+
+
+
+# ------- QUEST BLUEPRINT DEFINITION (from Quest/app.py) -------
+# Create Blueprint
+quest_bp = Blueprint('quest', __name__)
+
+# Configure data folder for jokes/scenarios
+QUEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), 'Quest', 'data')
+os.makedirs(QUEST_DATA_FOLDER, exist_ok=True)
+
+# Configure logs folder for game logging
+QUEST_LOGS_FOLDER = os.path.join(os.path.dirname(__file__), 'Quest', 'logs')
+os.makedirs(QUEST_LOGS_FOLDER, exist_ok=True)
+
+# Gemini client will be initialized lazily when needed
+gemini_client = None
+
+QUESTION = (
+    "In your own words, explain what parallel computing is and give one real-world "
+    "example where it would be beneficial. Answer in 3–5 sentences."
+)
+
+RUBRIC = """
+Score from 0 to 3.
+
+3 points:
+- Clearly defines parallel computing (multiple tasks executed at the same time).
+- Gives at least one realistic, correct real-world example (e.g., image processing, simulations, AI training).
+- Explanation is coherent and 3–5 sentences long.
+
+2 points:
+- Mostly correct definition but missing some detail or weak example.
+
+1 point:
+- Very vague or partially incorrect understanding.
+
+0 points:
+- Totally off-topic or no meaningful answer.
+"""
+
+GRADING_INSTRUCTIONS = """
+You are an automated grading assistant for a CS quiz.
+Use ONLY the rubric below to score.
+
+Return ONLY valid JSON in exactly this format:
+
+{
+  "score": <integer 0-3>,
+  "max_score": 3,
+  "feedback": "<short explanation>"
+}
+"""
+
+# LIST USED TO MANAGE PROGRAM COMPLEXITY (BACKEND)
+# This list stores a history of recent quiz attempts.
+# It is used by summarize_attempts to build feedback
+# about the user's overall performance.
+RECENT_ATTEMPTS = []
+
+
+# STUDENT-DEVELOPED PROCEDURE WITH LIST + SEQUENCING/SELECTION/LOOP
+def summarize_attempts(attempts, max_items=5):
+    """
+    Build a short summary of recent quiz attempts.
+
+    Parameters:
+        attempts: list of attempt dictionaries (each has 'score' and 'max_score')
+        max_items: maximum number of recent attempts to include
+
+    Returns:
+        Multi-line string describing performance history.
+    """
+
+    # SEQUENCING: set up early-return and data structures in order
+    if not attempts:
+        return "No attempts have been recorded yet."
+
+    summary_lines = []
+
+    # ITERATION: loop through the last max_items attempts (from newest to oldest)
+    start_index = len(attempts) - 1
+    end_index = max(-1, len(attempts) - 1 - max_items)
+
+    for index in range(start_index, end_index, -1):
+        attempt = attempts[index]
+        score = attempt["score"]
+        max_score = attempt["max_score"]
+
+        # SELECTION: choose a label based on score
+        if score == max_score:
+            label = "Perfect"
+        elif score > 0:
+            label = "Partial"
+        else:
+            label = "No credit"
+
+        summary_lines.append(
+            f"Attempt {index + 1}: {label} ({score}/{max_score})"
+        )
+
+    # SEQUENCING: combine the lines into a single summary string
+    summary_text = "\n".join(summary_lines)
+    return summary_text
+
+
+# QUIZ GRADING ENDPOINT
+@quest_bp.route("/api/quiz/grade", methods=["POST"])
+def grade_quiz():
+    print(">>> grade_quiz endpoint hit")
+
+    # Initialize gemini client lazily within request context
+    global gemini_client
+    if gemini_client is None and app.config.get('GEMINI_API_KEY') and genai:
+        try:
+            gemini_client = genai.Client(api_key=app.config.get('GEMINI_API_KEY'))
+        except Exception as e:
+            print(f"Failed to initialize Gemini client: {e}")
+            return jsonify({
+                "error": "Gemini API is not configured on the server (GEMINI_API_KEY missing)."
+            }), 500
+
+    if gemini_client is None:
+        return jsonify({
+            "error": "Gemini API is not configured on the server (GEMINI_API_KEY missing)."
+        }), 500
+
+    # INPUT FROM USER (body JSON field 'answer')
+    data = request.get_json(silent=True) or {}
+    student_answer = (data.get("answer") or "").strip()
+
+    if not student_answer:
+        return jsonify({"error": "Field 'answer' is required."}), 400
+
+    prompt = f"""{GRADING_INSTRUCTIONS}
+
+Question:
+{QUESTION}
+
+Rubric:
+{RUBRIC}
+
+Student answer:
+\"\"\"{student_answer}\"\"\""""
+
+    try:
+        # Ask Gemini for a JSON response
+        gemini_response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config={"response_mime_type": "application/json"},
+        )
+
+        result = getattr(gemini_response, "parsed", None)
+        raw_text = getattr(gemini_response, "text", "")
+
+        if isinstance(result, dict):
+            graded = result
+        else:
+            try:
+                graded = json.loads(raw_text)
+            except Exception:
+                graded = {
+                    "score": 0,
+                    "max_score": 3,
+                    "feedback": raw_text or "Model returned an unexpected response."
+                }
+
+        graded_score = graded.get("score", 0)
+        graded_max = graded.get("max_score", 3)
+        graded_feedback = graded.get("feedback", "No feedback provided.")
+
+        safe_payload = {
+            "score": int(graded_score) if isinstance(graded_score, (int, float, str)) else 0,
+            "max_score": int(graded_max) if isinstance(graded_max, (int, float, str)) else 3,
+            "feedback": str(graded_feedback),
+        }
+
+        # USE THE LIST + PROCEDURE TO GENERATE ATTEMPT HISTORY
+        RECENT_ATTEMPTS.append({
+            "score": safe_payload["score"],
+            "max_score": safe_payload["max_score"],
+        })
+
+        attempt_summary = summarize_attempts(RECENT_ATTEMPTS)
+        safe_payload["attempt_summary"] = attempt_summary
+
+        print(">>> Gemini graded:", safe_payload)
+
+        # OUTPUT: JSON based on input and program functionality
+        return jsonify(safe_payload), 200
+
+    except Exception as e:
+        print(">>> Gemini error:", e)
+        return jsonify({
+            "error": "Gemini API call failed.",
+            "details": str(e)
+        }), 500
+
+
+# Root endpoint
+@quest_bp.route('/quest')
+def quest_index():
+    return jsonify({
+        'message': 'Parallel Computing Education Platform API',
+        'version': '1.0.0',
+        'endpoints': {
+            'auth': '/api/auth',
+            'rooms': '/api/rooms',
+            'progress': '/api/progress',
+            'glossary': '/api/glossary',
+            'scenarios': '/api/scenarios',
+            'game_logs': '/api/game-logs'
+        }
+    })
+
+# Health check endpoint
+@quest_bp.route('/quest/health')
+def quest_health():
+    return jsonify({'status': 'healthy'}), 200
+
+# ------- END QUEST BLUEPRINT DEFINITION -------
+
 
 # JWT Configuration for Quest integration
 from flask_jwt_extended import JWTManager
