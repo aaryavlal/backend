@@ -3,10 +3,14 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_restful import Api, Resource
 
+from api.compute import compute_api
+
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins='*')
+CORS(app, supports_credentials=True, origins="*")
 
 api = Api(app)
+app.register_blueprint(compute_api)
+
 
 # --- Model class for InfoDb with CRUD naming ---
 class InfoModel:
@@ -18,7 +22,14 @@ class InfoModel:
                 "DOB": "October 21",
                 "Residence": "San Diego",
                 "Email": "jmortensen@powayusd.com",
-                "Owns_Cars": ["2015-Fusion", "2011-Ranger", "2003-Excursion", "1997-F350", "1969-Cadillac", "2015-Kuboto-3301"]
+                "Owns_Cars": [
+                    "2015-Fusion",
+                    "2011-Ranger",
+                    "2003-Excursion",
+                    "1997-F350",
+                    "1969-Cadillac",
+                    "2015-Kuboto-3301",
+                ],
             },
             {
                 "FirstName": "Shane",
@@ -26,8 +37,8 @@ class InfoModel:
                 "DOB": "February 27",
                 "Residence": "San Diego",
                 "Email": "slopez@powayusd.com",
-                "Owns_Cars": ["2021-Insight"]
-            }
+                "Owns_Cars": ["2021-Insight"],
+            },
         ]
 
     def read(self):
@@ -36,8 +47,10 @@ class InfoModel:
     def create(self, entry):
         self.data.append(entry)
 
+
 # Instantiate the model
 info_model = InfoModel()
+
 
 # --- API Resource ---
 class DataAPI(Resource):
@@ -52,10 +65,12 @@ class DataAPI(Resource):
         info_model.create(entry)
         return {"message": "Entry added successfully", "entry": entry}, 201
 
-api.add_resource(DataAPI, '/api/data')
+
+api.add_resource(DataAPI, "/api/data")
+
 
 # Wee can use @app.route for HTML endpoints, this will be style for Admin UI
-@app.route('/')
+@app.route("/")
 def say_hello():
     html_content = """
     <html>
@@ -69,5 +84,6 @@ def say_hello():
     """
     return html_content
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(port=5001)
