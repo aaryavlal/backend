@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speedup Formula - Integrated</title>
+<link rel="stylesheet" href="/static/assets/css/speedup.css" />
+<style>
+/* Minimal inline styles copied from user's provided HTML to keep page self-contained */
+* { box-sizing: border-box; margin:0; padding:0 }
+body { background: linear-gradient(135deg,#0f172a 0%,#1e293b 100%); color:#e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; padding:20px }
+.container { max-width:1200px; margin:auto }
+h1 { color:#38bdf8; text-align:center; margin-bottom:10px; font-size:2.2em }
+.section { background:#1e293b; padding:20px; border-radius:10px; margin-bottom:20px; border:2px solid #334155 }
+.controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.controls input { padding:8px; border-radius:6px; background:#0f172a; color:#e2e8f0; border:2px solid #475569 }
+.add-btn { background:#10b981; color:#fff; padding:8px 12px; border-radius:6px; border:none }
+.block { padding:10px 14px; margin:6px; background:linear-gradient(135deg,#10b981 0%,#059669 100%); color:#fff; border-radius:8px; display:inline-block; cursor:grab; font-weight:bold }
+.row { min-height:80px; background:#334155; border-radius:10px; margin:12px 0; padding:12px; border:3px dashed transparent }
+.row-title { color:#38bdf8; font-weight:bold; margin-bottom:8px }
+.results { background:#0f172a; padding:12px; border-radius:8px; margin-top:12px; white-space:pre-wrap; font-family:monospace }
+.saved-runs { background:#0f172a; padding:12px; border-radius:8px; margin-top:12px; max-height:300px; overflow:auto; font-family:monospace }
+.action-buttons button { padding:10px 14px; border-radius:8px; border:none; cursor:pointer }
+.compute-btn { background:#38bdf8; color:#0f172a }
+.save-btn { background:#10b981; color:#fff }
+.show-btn { background:#2196F3; color:#fff }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>⚡ Speedup Formula (Integrated with Backend)</h1>
+
+  <div class="section">
+    <div class="controls">
+      <label style="color:#94a3b8">Task Time:</label>
+      <input id="newTaskTime" type="number" min="1" placeholder="e.g. 5, 10, 15">
+      <button class="add-btn" id="addBtn">Add Task</button>
+    </div>
+
+    <div class="row" id="taskPool"><div class="row-title">Task Pool</div><div class="row-hint">Drag tasks from here into the rows below</div></div>
+    <div class="row" id="seriesRow"><div class="row-title">Series Row</div><div class="row-hint">Sequential tasks</div></div>
+    <div class="row" id="parallelRow"><div class="row-title">Parallel Row</div><div class="row-hint">Parallel tasks</div></div>
+
+    <div style="margin-top:12px" class="action-buttons">
+      <button class="compute-btn" id="computeBtn">Compute Speedup</button>
+      <button class="save-btn" id="saveBtn">Save Run (Backend)</button>
+      <button class="show-btn" id="showBtn">Show Saved Runs</button>
+    </div>
+
+    <div id="results" class="results">Results will appear here after you compute speedup...</div>
+    <div id="savedRuns" class="saved-runs" style="display:none">No runs saved yet</div>
+  </div>
+</div>
+
+<script>
+let currentlyDragging = null;
+let currentScore = null;
+
+function allowDrop(ev){ ev.preventDefault(); ev.currentTarget.classList.add('drag-over') }
+function drag(ev){ ev.dataTransfer.setData('text', ev.target.id); ev.target.classList.add('dragging'); currentlyDragging = ev.target }
+function drop(ev){ ev.preventDefault(); ev.currentTarget.classList.remove('drag-over'); const id = ev.dataTransfer.getData('text'); const el = document.getElementById(id); const row = ev.target.closest('.row'); if(row) row.appendChild(el); el.classList.remove('dragging'); }
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const val = parseInt(document.getElementById('newTaskTime').value);
+  if(isNaN(val) || val<1){ alert('Enter positive number'); return }
+  const block = document.createElement('div'); block.className='block'; block.id = 'task'+Date.now(); block.draggable=true; block.ondragstart=drag; block.textContent = val; document.getElementById('taskPool').appendChild(block); document.getElementById('newTaskTime').value='';
+})
+
+function computeSpeedupLocal(){
+  const seriesBlocks = Array.from(document.getElementById('seriesRow').children).filter(c=>c.classList&&c.classList.contains('block')).map(b=>parseInt(b.textContent));
+  const parallelBlocks = Array.from(document.getElementById('parallelRow').children).filter(c=>c.classList&&c.classList.contains('block')).map(b=>parseInt(b.textContent));
+  if(seriesBlocks.length===0 && parallelBlocks.length===0){ alert('Add tasks first'); return }
+  const serialTime = [...seriesBlocks,...parallelBlocks].reduce((a,b)=>a+b,0);
+  const parallelTime = seriesBlocks.reduce((a,b)=>a+b,0) + (parallelBlocks.length?Math.max(...parallelBlocks):0);
+  const speedup = parallelTime>0?serialTime/parallelTime:0;
+  const resultsElem = document.getElementById('results'); resultsElem.textContent = `RESULTS\n${'='.repeat(40)}\n\nSeries: [${seriesBlocks.join(',')||'none'}]\nParallel: [${parallelBlocks.join(',')||'none'}]\n\nSerial Time: ${serialTime}\nParallel Time: ${parallelTime}\nSpeedup: ${speedup.toFixed(3)}x`; resultsElem.classList.add('has-results');
+  window.currentScore = { seriesBlocks, parallelBlocks, serialTime, parallelTime, speedup };
+}
+
+document.getElementById('computeBtn').addEventListener('click', computeSpeedupLocal);
+
+// Save run to backend
+async function saveRunToBackend(){
+  if(!window.currentScore){ alert('Compute speedup first'); return }
+  const name = prompt('Enter a name for this run:'); if(!name) return;
+  const payload = { name, seriesBlocks: window.currentScore.seriesBlocks, parallelBlocks: window.currentScore.parallelBlocks, serialTime: window.currentScore.serialTime, parallelTime: window.currentScore.parallelTime, speedup: window.currentScore.speedup };
+  try{
+    const res = await fetch('/api/saved_runs', {
+      method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+    });
+    if(!res.ok){ const txt = await res.text(); alert('Save failed: '+res.status+' '+txt); return }
+    const data = await res.json(); alert('Saved: '+(data.run && data.run.id));
+  }catch(err){ console.error(err); alert('Network error: '+err.message) }
+}
+
+document.getElementById('saveBtn').addEventListener('click', saveRunToBackend);
+
+// Show saved runs from backend
+async function showSavedRuns(){
+  try{
+    const res = await fetch('/api/saved_runs'); if(!res.ok){ alert('Failed to fetch saved runs: '+res.status); return }
+    const data = await res.json(); const list = data.savedRuns||[]; const elem = document.getElementById('savedRuns'); if(list.length===0){ elem.style.display='block'; elem.textContent='No runs saved yet'; return }
+    let text = `SAVED RUNS (${list.length})\n${'='.repeat(40)}\n\n`;
+    list.forEach((r,i)=>{ text += `${i+1}. ${r.name} (${r.timestamp||'no-ts'}) - id:${r.id}\n   Speedup: ${Number(r.speedup).toFixed(3)} (Serial:${r.serialTime}, Parallel:${r.parallelTime})\n   Series:[${(r.seriesBlocks||[]).join(',')}], Parallel:[${(r.parallelBlocks||[]).join(',')}]\n\n` });
+    elem.style.display='block'; elem.textContent=text;
+  }catch(err){ console.error(err); alert('Error fetching saved runs: '+err.message) }
+}
+
+document.getElementById('showBtn').addEventListener('click', showSavedRuns);
+
+// Add initial example tasks
+window.addEventListener('load', ()=>{
+  [10,5,8,3].forEach(v=>{ const block=document.createElement('div'); block.className='block'; block.id='task'+Date.now()+Math.random(); block.draggable=true; block.ondragstart=drag; block.textContent=v; document.getElementById('taskPool').appendChild(block); })
+});
+</script>
+</body>
+</html>

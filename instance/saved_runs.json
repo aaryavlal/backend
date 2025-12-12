@@ -1,0 +1,32 @@
+[
+  {
+    "name": "curl run",
+    "seriesBlocks": [
+      10,
+      5
+    ],
+    "parallelBlocks": [
+      8
+    ],
+    "serialTime": 23,
+    "parallelTime": 18,
+    "speedup": 1.278,
+    "timestamp": "2025-12-11 14:10:03",
+    "id": 1
+  },
+  {
+    "name": "curl run",
+    "seriesBlocks": [
+      10,
+      5
+    ],
+    "parallelBlocks": [
+      8
+    ],
+    "serialTime": 23,
+    "parallelTime": 18,
+    "speedup": 1.278,
+    "timestamp": "2025-12-12 10:26:41",
+    "id": 2
+  }
+]

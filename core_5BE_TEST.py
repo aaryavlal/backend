@@ -12,6 +12,8 @@ api = Api(app)
 # -------------------------------------------------------
 
 RECENT_ATTEMPTS = []   # stores dicts of attempts
+SAVED_RUNS = []       # stores saved runs from the frontend
+SAVED_RUNS_PATH = 'instance/saved_runs.json'
 
 
 def summarize_attempts(attempts, max_items=5):
@@ -79,6 +81,113 @@ class AttemptAPI(Resource):
 api.add_resource(AttemptAPI, '/api/attempt')
 
 
+def _ensure_saved_runs_file():
+    """Ensure the saved runs file exists and load it."""
+    try:
+        import os, json
+        if not os.path.isdir('instance'):
+            os.makedirs('instance', exist_ok=True)
+        if not os.path.exists(SAVED_RUNS_PATH):
+            with open(SAVED_RUNS_PATH, 'w') as f:
+                json.dump([], f)
+        with open(SAVED_RUNS_PATH, 'r') as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                global SAVED_RUNS
+                SAVED_RUNS = data
+    except Exception:
+        # if anything goes wrong, keep an in-memory list
+        pass
+
+
+def _save_saved_runs_file():
+    try:
+        import json
+        with open(SAVED_RUNS_PATH, 'w') as f:
+            json.dump(SAVED_RUNS, f, indent=2)
+    except Exception:
+        # best-effort only
+        pass
+
+
+class SavedRunsAPI(Resource):
+    def get(self):
+        """Return list of saved runs."""
+        # Always reload from file to get fresh data
+        try:
+            import json, os
+            if os.path.exists(SAVED_RUNS_PATH):
+                with open(SAVED_RUNS_PATH, 'r') as f:
+                    runs = json.load(f)
+                    return jsonify({'savedRuns': runs})
+        except Exception as e:
+            pass
+        return jsonify({'savedRuns': []})
+
+    def post(self):
+        """Save a new run posted from the frontend.
+
+        Expected JSON: { name, seriesBlocks, parallelBlocks, serialTime, parallelTime, speedup }
+        """
+        payload = request.get_json()
+        if not payload:
+            return {'error': 'No data provided'}, 400
+
+        # minimal validation
+        required = ['name', 'seriesBlocks', 'parallelBlocks', 'serialTime', 'parallelTime', 'speedup']
+        for r in required:
+            if r not in payload:
+                return {'error': f'Missing field: {r}'}, 400
+
+        # Load current runs from file to get accurate next ID
+        import time, json, os
+        runs = []
+        try:
+            if os.path.exists(SAVED_RUNS_PATH):
+                with open(SAVED_RUNS_PATH, 'r') as f:
+                    runs = json.load(f)
+        except Exception:
+            runs = []
+
+        # add timestamp and id
+        new_run = dict(payload)
+        new_run['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S')
+        new_run['id'] = (runs[-1]['id'] + 1) if runs and isinstance(runs[-1].get('id'), int) else 1
+
+        runs.append(new_run)
+        
+        # Save back to file
+        try:
+            if not os.path.isdir('instance'):
+                os.makedirs('instance', exist_ok=True)
+            with open(SAVED_RUNS_PATH, 'w') as f:
+                json.dump(runs, f, indent=2)
+        except Exception:
+            pass
+
+        return {'message': 'Run saved', 'run': new_run}, 201
+
+
+class SavedRunItemAPI(Resource):
+    def get(self, run_id):
+        """Get a single saved run by ID."""
+        try:
+            import json, os
+            if os.path.exists(SAVED_RUNS_PATH):
+                with open(SAVED_RUNS_PATH, 'r') as f:
+                    runs = json.load(f)
+                    for r in runs:
+                        if r.get('id') == run_id:
+                            return jsonify(r)
+        except Exception:
+            pass
+        return {'error': 'Not found'}, 404
+
+
+api.add_resource(SavedRunsAPI, '/api/saved_runs')
+api.add_resource(SavedRunItemAPI, '/api/saved_runs/<int:run_id>')
+
+
 # -------------------------------------------------------
 # ORIGINAL DATA API (kept intact)
 # -------------------------------------------------------
@@ -140,5 +249,12 @@ def say_hello():
     """
 
 
+@app.route('/speedup')
+def speedup_page():
+    """Serve the speedup interactive page."""
+    from flask import send_file
+    return send_file('templates/speedup.html')
+
+
 if __name__ == '__main__':
-    app.run(port=5001)
+    app.run(port=5001, debug=True)
