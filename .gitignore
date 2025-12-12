@@ -22,6 +22,8 @@ build/
 
 # JWT Secrets (NEVER COMMIT)
 .jwt_secrets.json
+.jwt_tokens.json
+generate_jwt_tokens.py
 
 # IDE
 .vscode/
