@@ -20,6 +20,9 @@ build/
 .env
 .venv
 
+# JWT Secrets (NEVER COMMIT)
+.jwt_secrets.json
+
 # IDE
 .vscode/
 .idea/
