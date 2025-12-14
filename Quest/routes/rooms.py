@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models.user import User
-from models.room import Room
+from Quest.models.user import User
+from Quest.models.room import Room
 
 rooms_bp = Blueprint('rooms', __name__, url_prefix='/api/rooms')
 

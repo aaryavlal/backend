@@ -1,5 +1,5 @@
 import bcrypt
-from database import query_db, execute_db
+from Quest.database import query_db, execute_db
 
 class User:
     @staticmethod
