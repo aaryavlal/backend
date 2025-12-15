@@ -52,10 +52,10 @@ class AttemptAPI(Resource):
     def post(self):
         """
         Store a new attempt sent from the frontend.
-        Expected JSON:
-        {
-            "score": number,
-            "maxScore": number,
+        Expected JSON:conn
+        {conn
+            "score": number,conn
+            "maxScore": number,conn
             "feedback": "text",
             "details": {...}
         }

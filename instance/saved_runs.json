@@ -28,5 +28,68 @@
     "speedup": 1.278,
     "timestamp": "2025-12-12 10:26:41",
     "id": 2
+  },
+  {
+    "name": "test from curl",
+    "seriesBlocks": [
+      10,
+      5
+    ],
+    "parallelBlocks": [
+      8
+    ],
+    "serialTime": 23,
+    "parallelTime": 18,
+    "speedup": 1.278,
+    "timestamp": "2025-12-12 13:34:02",
+    "id": 3
+  },
+  {
+    "name": "My Postman Run",
+    "seriesBlocks": [
+      15,
+      10
+    ],
+    "parallelBlocks": [
+      5,
+      3
+    ],
+    "serialTime": 33,
+    "parallelTime": 30,
+    "speedup": 1.1,
+    "timestamp": "2025-12-12 13:40:57",
+    "id": 4
+  },
+  {
+    "name": "My Postman Run",
+    "seriesBlocks": [
+      15,
+      10
+    ],
+    "parallelBlocks": [
+      5,
+      3
+    ],
+    "serialTime": 33,
+    "parallelTime": 30,
+    "speedup": 1.1,
+    "timestamp": "2025-12-12 13:41:33",
+    "id": 5
+  },
+  {
+    "name": "My Postman Run",
+    "seriesBlocks": [
+      15,
+      10
+    ],
+    "parallelBlocks": [
+      5,
+      3
+    ],
+    "serialTime": 33,
+    "parallelTime": 30,
+    "speedup": 1.1,
+    "timestamp": "2025-12-12 13:45:42",
+    "id": 6
   }
 ]
