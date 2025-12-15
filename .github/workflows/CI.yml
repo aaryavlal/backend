@@ -38,6 +38,8 @@ jobs:
           python-version: 3.x
       - name: Install Maturin
         run: pip install maturin
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.platform.target }}
       - name: Build wheels
         run: cd rust/rustism && maturin build --target ${{ matrix.platform.target }} --release --out dist --find-interpreter
         env:
@@ -68,6 +70,8 @@ jobs:
           python-version: 3.x
       - name: Install Maturin
         run: pip install maturin
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.platform.target }}
       - name: Build wheels
         run: cd rust/rustism && maturin build --target ${{ matrix.platform.target }} --release --out dist --find-interpreter
         env:
@@ -95,6 +99,8 @@ jobs:
           architecture: ${{ matrix.platform.target }}
       - name: Install Maturin
         run: pip install maturin
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.platform.target }}
       - name: Build wheels
         run: cd rust/rustism && maturin build --target ${{ matrix.platform.target }} --release --out dist --find-interpreter
         env:
@@ -121,6 +127,8 @@ jobs:
           python-version: 3.x
       - name: Install Maturin
         run: pip install maturin
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.platform.target }}
       - name: Build wheels
         run: cd rust/rustism && maturin build --target ${{ matrix.platform.target }} --release --out dist --find-interpreter
         env:
