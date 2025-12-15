@@ -1,21 +1,34 @@
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import rustism
 
 
-def get_sequential() -> List[Dict[str, Any]]:
+def get_sequential(
+    width: int = 800,
+    height: int = 600,
+    tile_w: int = 64,
+    tile_h: int = 64,
+    max_iter: int = 256,
+    emit_callback: Optional[Callable] = None,
+    time_limit_ms: int = 2000,
+) -> List[Dict[str, Any]]:
     """
-    Execute sequential task simulation from Rust component
-
-    Returns:
-        List of dictionaries containing task execution data with keys:
-            - task_id: The unique ID (in sequence) for the task
-            - start_ms: Start time in milliseconds
-            - end_ms: End time in milliseconds
-            - duration_ms: Calculated duration of the task
+    TODO: docs
     """
 
-    # Call the Rust function to get the TaskRecord object
-    task_records = rustism.sequential()
+    # use a no op callback if none provided
+    if emit_callback is None:
+        emit_callback = lambda title: None
+
+    # Call the Rust function with all params
+    task_records = rustism.sequential(
+        width=width,
+        height=height,
+        tile_w=tile_w,
+        tile_h=tile_h,
+        max_iter=max_iter,
+        emit_tile=emit_callback,
+        time_limit_ms=time_limit_ms,
+    )
 
     return task_records
