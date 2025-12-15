@@ -1,4 +1,12 @@
-from Quest.database import query_db, execute_db
+import sys
+import os
+
+# Support both module imports and direct script imports
+try:
+    from ..database import query_db, execute_db
+except (ImportError, ValueError):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from database import query_db, execute_db
 
 class Glossary:
     @staticmethod

@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
 """
 Script to create an admin user
-Usage: python create_admin.py
+Usage: python -m Quest.create_admin (from backend directory)
+   or: python create_admin.py (from Quest directory)
 """
 
-from database import init_db
-from models.user import User
+import sys
+import os
+
+# Handle relative imports when run as a script
+if __name__ == '__main__' and __package__ is None:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from database import init_db
+    from models.user import User
+else:
+    from .database import init_db
+    from .models.user import User
+
 import getpass
 
 def create_admin():

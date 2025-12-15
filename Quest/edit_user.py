@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
 """
 Script to edit user information
-Usage: python edit_user.py
+Usage: python -m Quest.edit_user (from backend directory)
+   or: python edit_user.py (from Quest directory)
 """
 
-from database import init_db
-from models.user import User
+import sys
+import os
+
+# Handle relative imports when run as a script
+if __name__ == '__main__' and __package__ is None:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from database import init_db
+    from models.user import User
+else:
+    from .database import init_db
+    from .models.user import User
+
 import getpass
 import bcrypt
 

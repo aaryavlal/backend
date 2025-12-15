@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from Quest.models.user import User
-from Quest.utils.validators import validate_email, validate_password, validate_username, validate_required_fields
+from ..models.user import User
+from ..utils.validators import validate_email, validate_password, validate_username, validate_required_fields
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -123,7 +123,7 @@ def get_current_user():
 
     # Get full room information if user is in a room
     if user.get('current_room_id'):
-        from Quest.models.room import Room
+        from ..models.room import Room
         room = Room.find_by_id(user['current_room_id'])
         user['current_room'] = room
     else:

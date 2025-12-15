@@ -4,7 +4,15 @@ Clean up room membership inconsistencies
 This script ensures current_room_id matches actual room_members table
 """
 
-from database import init_db, query_db, execute_db
+import sys
+import os
+
+# Handle relative imports when run as a script
+if __name__ == '__main__' and __package__ is None:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from database import init_db, query_db, execute_db
+else:
+    from .database import init_db, query_db, execute_db
 
 def cleanup_room_sync():
     """Fix any users with current_room_id set but not in room_members"""
