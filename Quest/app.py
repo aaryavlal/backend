@@ -23,26 +23,27 @@ GEMINI_API_KEY = "" #insert api key here if you want to use the Gemini grading f
 #gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 QUESTION = (
-    "In your own words, explain what parallel computing is and give one real-world "
-    "example where it would be beneficial. Answer in 3–5 sentences."
+    "Module 4 explained that every algorithm mixes sequential setup/combining steps with parallel chunks. "
+    "In 2 short sentences, describe why the sequential portion eventually limits speedup even if you keep adding processors, "
+    "and mention one practical tweak from the module (shrink the sequential slice, expose more parallel work, reduce overhead/balance issues) "
+    "that keeps improvements coming a little longer."
 )
 
 RUBRIC = """
-Score from 0 to 3.
+Score from 0 to 3. Keep grading gentle and focus on Module 4 concepts.
 
 3 points:
-- Clearly defines parallel computing (multiple tasks executed at the same time).
-- Gives at least one realistic, correct real-world example (e.g., image processing, simulations, AI training).
-- Explanation is coherent and 3–5 sentences long.
+- States that the sequential portion (setup/combining/critical section) becomes the bottleneck so extra processors have diminishing returns.
+- Names one concrete Module 4 tactic (reduce sequential work, expose more parallelism, trim overhead/balance costs).
 
 2 points:
-- Mostly correct definition but missing some detail or weak example.
+- Provides either the bottleneck explanation or the adjustment idea clearly, but not both.
 
 1 point:
-- Very vague or partially incorrect understanding.
+- Only says “more cores make it faster” or similar with no reference to sequential limits or improvements.
 
 0 points:
-- Totally off-topic or no meaningful answer.
+- Off-topic or empty response.
 """
 
 GRADING_INSTRUCTIONS = """
