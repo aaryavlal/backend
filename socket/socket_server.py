@@ -210,8 +210,8 @@ def handle_compute_concurrent_stream(data=None):
         num_threads = params.get("num_threads", 4)
 
         # Calculate the total tasks for progress tracking
-        total_tasks = (height // tile_h + (1 if height & tile_h else 0)) + (
-            width // tile_w + (1 if width & tile_w else 0)
+        total_tasks = (height // tile_h + (1 if height % tile_h != 0 else 0)) * (
+            width // tile_w + (1 if width % tile_w != 0 else 0)
         )
 
         # Define callback to emit each tile as it completes

@@ -36,6 +36,7 @@ from api.analytics import analytics_api
 from api.classroom_api import classroom_api
 
 # API endpoints
+from api.compute import compute_api
 from api.gemini_api import gemini_api
 from api.groq_api import groq_api
 from api.javascript_exec_api import javascript_exec_api
@@ -381,6 +382,7 @@ def missing_token_callback(error):
 
 
 # register URIs for api endpoints
+app.register_blueprint(compute_api)
 app.register_blueprint(python_exec_api)
 app.register_blueprint(javascript_exec_api)
 app.register_blueprint(user_api)
