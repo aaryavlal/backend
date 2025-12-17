@@ -20,7 +20,8 @@ socketio = SocketIO(
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:4600",
-        "http://127.0.0.1:4600https://open-coding-society.github.io",
+        "http://127.0.0.1:4600",
+        "https://open-coding-society.github.io",
         "https://pages.opencodingsociety.com",
     ],
 )
