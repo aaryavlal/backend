@@ -83,6 +83,7 @@ from Quest.routes.game_logs import game_logs_bp
 from Quest.routes.glossary import glossary_bp
 from Quest.routes.progress import progress_bp
 from Quest.routes.rooms import rooms_bp
+from Quest.routes.speedup import speedup_bp
 
 # Load environment variables
 load_dotenv()
@@ -326,6 +327,7 @@ def quest_index():
                 "glossary": "/api/glossary",
                 "scenarios": "/api/scenarios",
                 "game_logs": "/api/game-logs",
+                "speedup": "/api/speedup",
             },
         }
     )
@@ -411,6 +413,7 @@ app.register_blueprint(rooms_bp)
 app.register_blueprint(progress_bp)
 app.register_blueprint(glossary_bp)
 app.register_blueprint(game_logs_bp)
+app.register_blueprint(speedup_bp)
 
 # --- Jokes API Resources ---
 api = Api(app)
