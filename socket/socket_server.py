@@ -23,6 +23,7 @@ socketio = SocketIO(
         "http://127.0.0.1:4600",
         "https://open-coding-society.github.io",
         "https://pages.opencodingsociety.com",
+        "https://aaryavlal.github.io",  # deployed site
     ],
 )
 
