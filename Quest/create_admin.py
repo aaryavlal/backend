@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+3#!/usr/bin/env python3
 """
 Script to create an admin user
 Usage: python -m Quest.create_admin (from backend directory)

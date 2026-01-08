@@ -4,6 +4,7 @@ import json
 import os
 import random
 import sqlite3
+import textwrap
 
 # from api.announcement import announcement_api ##temporary revert
 # Import Quest blueprints (routes only - blueprint definition moved to this file)
@@ -166,10 +167,13 @@ Return ONLY valid JSON in exactly this format:
 # This list stores a history of recent quiz attempts.
 # It is used by summarize_attempts to build feedback
 # about the user's overall performance.
+# --- APREQ_LIST_START ---
 RECENT_ATTEMPTS = []
+# --- APREQ_LIST_END ---
 
 
 # STUDENT-DEVELOPED PROCEDURE WITH LIST + SEQUENCING/SELECTION/LOOP
+# --- APREQ_PROCEDURE_START ---
 def summarize_attempts(attempts, max_items=5):
     """
     Build a short summary of recent quiz attempts.
@@ -192,6 +196,7 @@ def summarize_attempts(attempts, max_items=5):
     start_index = len(attempts) - 1
     end_index = max(-1, len(attempts) - 1 - max_items)
 
+    # --- APREQ_ALGORITHM_START ---
     for index in range(start_index, end_index, -1):
         attempt = attempts[index]
         score = attempt["score"]
@@ -206,10 +211,12 @@ def summarize_attempts(attempts, max_items=5):
             label = "No credit"
 
         summary_lines.append(f"Attempt {index + 1}: {label} ({score}/{max_score})")
+    # --- APREQ_ALGORITHM_END ---
 
     # SEQUENCING: combine the lines into a single summary string
     summary_text = "\n".join(summary_lines)
     return summary_text
+# --- APREQ_PROCEDURE_END ---
 
 
 # QUIZ GRADING ENDPOINT
