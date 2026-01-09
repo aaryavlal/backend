@@ -40,8 +40,8 @@ cors = CORS(
        'http://127.0.0.1:4600',
        'http://localhost:8405',
        'http://127.0.0.1:8405',
-       'https://open-coding-society.github.io',
-       'https://pages.opencodingsociety.com',
+       'https://hardwarehavoc.github.io',
+       'https://pages.hardwarehavoc.com',
    ],
    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 )
@@ -116,7 +116,7 @@ os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
 app.config['GITHUB_API_URL'] = 'https://api.github.com'
 app.config['GITHUB_TOKEN'] = os.environ.get('GITHUB_TOKEN') or None
 app.config['GITHUB_TARGET_TYPE'] = os.environ.get('GITHUB_TARGET_TYPE') or 'user'
-app.config['GITHUB_TARGET_NAME'] = os.environ.get('GITHUB_TARGET_NAME') or 'open-coding-society'
+app.config['GITHUB_TARGET_NAME'] = os.environ.get('GITHUB_TARGET_NAME') or 'hardwarehavoc'
 
 
 # Gemini API settingsa
@@ -125,7 +125,7 @@ app.config['GEMINI_API_KEY'] = os.environ.get('GEMINI_API_KEY') or None
 
 
 # KASM settings
-app.config['KASM_SERVER'] = os.environ.get('KASM_SERVER') or 'https://kasm.opencodingsociety.com'
+app.config['KASM_SERVER'] = os.environ.get('KASM_SERVER') or 'https://kasm.hardwarehavoc.com'
 app.config['KASM_API_KEY'] = os.environ.get('KASM_API_KEY') or None
 app.config['KASM_API_KEY_SECRET'] = os.environ.get('KASM_API_KEY_SECRET') or None
 

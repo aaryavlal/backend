@@ -14,19 +14,36 @@ import os
 digit_api = Blueprint('digit_api', __name__)
 
 # Load ultimate model
-MODEL_PATH = 'best_model.keras'
-print("Loading model...")
-model = keras.models.load_model(MODEL_PATH)
-print("Model loaded!")
+MODEL_DIR = os.path.join(os.path.dirname(__file__))
+MODEL_PATH = os.path.join(MODEL_DIR, 'best_model.keras')
+
+model = None
+ensemble_models = []
+
+try:
+    if os.path.exists(MODEL_PATH):
+        print(f"Loading model from {MODEL_PATH}...")
+        model = keras.models.load_model(MODEL_PATH)
+        print("Model loaded successfully!")
+    else:
+        print(f"WARNING: Model not found at {MODEL_PATH}")
+        print("The digit recognition API will not work until the model is available.")
+except Exception as e:
+    print(f"ERROR loading model: {e}")
+    print("The digit recognition API will not work.")
 
 # Try to load ensemble if available
-ensemble_models = []
-for i in range(5):
-    if os.path.exists(f'ensemble_model_{i}.keras'):
-        ensemble_models.append(keras.models.load_model(f'ensemble_model_{i}.keras'))
+if model is not None:
+    for i in range(5):
+        ensemble_path = os.path.join(MODEL_DIR, f'ensemble_model_{i}.keras')
+        if os.path.exists(ensemble_path):
+            try:
+                ensemble_models.append(keras.models.load_model(ensemble_path))
+            except Exception as e:
+                print(f"Warning: Could not load ensemble model {i}: {e}")
 
-if ensemble_models:
-    print(f"✓ Loaded {len(ensemble_models)} ensemble models")
+    if ensemble_models:
+        print(f"✓ Loaded {len(ensemble_models)} ensemble models")
 
 def find_connected_components(img_array, threshold=250):
     """Find separate digits using projection-based segmentation"""
@@ -201,8 +218,10 @@ def advanced_preprocess_digit(img_array, bbox):
 
     # Normalize to 0-1 range
     final = final.astype(np.float32) / 255.0
-    if final.max() > 0:
-        final = (final - final.min()) / (final.max() - final.min())
+    final_max = final.max()
+    final_min = final.min()
+    if final_max > final_min:
+        final = (final - final_min) / (final_max - final_min)
 
     return final
 
@@ -241,10 +260,11 @@ def predict_with_tta(image, num_augmentations=8):
 @digit_api.route('/api/digit/health', methods=['GET'])
 def health():
     return jsonify({
-        'status': 'ok',
-        'model_loaded': True,
+        'status': 'ok' if model is not None else 'error',
+        'model_loaded': model is not None,
         'ensemble_models': len(ensemble_models),
-        'tta_enabled': True
+        'tta_enabled': True,
+        'model_path': MODEL_PATH
     })
 
 def extract_layer_activations(image):
@@ -302,8 +322,12 @@ def extract_layer_activations(image):
             for i in range(num_features):
                 feature_map = activation[:, :, i]
                 # Normalize
-                if feature_map.max() > feature_map.min():
-                    feature_map = (feature_map - feature_map.min()) / (feature_map.max() - feature_map.min())
+                fmap_max = feature_map.max()
+                fmap_min = feature_map.min()
+                if fmap_max > fmap_min:
+                    feature_map = (feature_map - fmap_min) / (fmap_max - fmap_min)
+                else:
+                    feature_map = np.zeros_like(feature_map)
                 feature_map = (feature_map * 255).astype(np.uint8)
 
                 # Convert to base64
@@ -332,12 +356,22 @@ def extract_layer_activations(image):
 @digit_api.route('/api/digit/predict', methods=['POST'])
 def predict():
     try:
+        # Check if model is loaded
+        if model is None:
+            return jsonify({
+                'error': 'Model not loaded',
+                'message': 'The digit recognition model is not available. Please check server logs.'
+            }), 503
+
         data = request.get_json()
 
         if not data or 'image' not in data:
             return jsonify({'error': 'No image provided'}), 400
 
         image_data = data['image']
+        if not image_data or len(image_data.strip()) == 0:
+            return jsonify({'error': 'Empty image data'}), 400
+
         if ',' in image_data:
             image_data = image_data.split(',')[1]
 
@@ -423,12 +457,22 @@ def predict():
 def visualize():
     """Get CNN layer activations for educational visualization"""
     try:
+        # Check if model is loaded
+        if model is None:
+            return jsonify({
+                'error': 'Model not loaded',
+                'message': 'The digit recognition model is not available. Please check server logs.'
+            }), 503
+
         data = request.get_json()
 
         if not data or 'image' not in data:
             return jsonify({'error': 'No image provided'}), 400
 
         image_data = data['image']
+        if not image_data or len(image_data.strip()) == 0:
+            return jsonify({'error': 'Empty image data'}), 400
+
         if ',' in image_data:
             image_data = image_data.split(',')[1]
 

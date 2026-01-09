@@ -19,3 +19,7 @@ python_dotenv
 boto3
 rustism
 bcrypt
+tensorflow
+opencv-python
+scipy
+pillow
