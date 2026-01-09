@@ -21,7 +21,7 @@ RUN pip install --upgrade pip && \
 ENV FLASK_ENV=production
 
 # Expose application ports
-EXPOSE 8405 8500
+EXPOSE 8405 8406
 
 # Make start.sh executable
 RUN chmod +x start.sh
