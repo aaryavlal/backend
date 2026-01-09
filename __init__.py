@@ -15,8 +15,8 @@ load_dotenv()
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
-# Configure Flask Port, default to 8587 which is same as Docker setup
-app.config['FLASK_PORT'] = int(os.environ.get('FLASK_PORT') or 8587)
+# Configure Flask Port, default to 8405 which is same as Docker setup
+app.config['FLASK_PORT'] = int(os.environ.get('FLASK_PORT') or 8405)
 
 # Configure Flask to handle JSON with UTF-8 encoding versus default ASCII
 app.config['JSON_AS_ASCII'] = False  # Allow emojis, non-ASCII characters in JSON responses
@@ -38,8 +38,8 @@ cors = CORS(
        'http://127.0.0.1:4500',
        'http://localhost:4600',
        'http://127.0.0.1:4600',
-       'http://localhost:8587',
-       'http://127.0.0.1:8587',
+       'http://localhost:8405',
+       'http://127.0.0.1:8405',
        'https://open-coding-society.github.io',
        'https://pages.opencodingsociety.com',
    ],

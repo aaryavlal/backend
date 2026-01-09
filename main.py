@@ -38,6 +38,7 @@ from api.classroom_api import classroom_api
 
 # API endpoints
 from api.compute import compute_api
+from api.digit_api import digit_api
 from api.gemini_api import gemini_api
 from api.groq_api import groq_api
 from api.javascript_exec_api import javascript_exec_api
@@ -404,6 +405,7 @@ app.register_blueprint(microblog_api)
 
 app.register_blueprint(analytics_api)
 app.register_blueprint(student_api)
+app.register_blueprint(digit_api)
 # app.register_blueprint(grade_api)
 app.register_blueprint(study_api)
 app.register_blueprint(classroom_api)
@@ -889,6 +891,6 @@ app.cli.add_command(custom_cli)
 if __name__ == "__main__":
     host = "0.0.0.0"
     port = app.config["FLASK_PORT"]
-    print(f"** Server running: http://localhost: 8405")  # Pretty link
-    app.run(debug=True, host="0.0.0.0", port="8405")
+    print(f"** Server running: http://localhost:8405")  # Pretty link
+    app.run(debug=True, host="0.0.0.0", port=8405)
 
