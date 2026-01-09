@@ -20,11 +20,13 @@ pub fn concurrent(
     time_limit_ms: u64,
     num_threads: usize,
 ) -> PyResult<Vec<TaskRecord>> {
-    // Collect all tile coordinates first
+    // Collect all tile coordinates with their task_ids first
     let mut tiles = Vec::new();
+    let mut task_id = 0;
     for ty in (0..height).step_by(tile_h) {
         for tx in (0..width).step_by(tile_w) {
-            tiles.push((tx, ty));
+            tiles.push((task_id, tx, ty));
+            task_id += 1;
         }
     }
 
@@ -41,13 +43,14 @@ pub fn concurrent(
         // Divide work among threads
         let chunk_size = (tiles.len() + num_threads - 1) / num_threads;
 
-        for (worked_id, tile_chunk) in tiles.chunks(chunk_size).enumerate() {
+        for (thread_id, tile_chunk) in tiles.chunks(chunk_size).enumerate() {
             let time_exceeded = Arc::clone(&time_exceeded);
             let records = Arc::clone(&records);
+            let overall_start = overall_start; // Copy for thread
 
-            // Spawn a shared thread for this chunk of tiles
+            // Spawn a thread for this chunk of tiles
             s.spawn(move || {
-                for &(tx, ty) in tile_chunk {
+                for &(task_id, tx, ty) in tile_chunk {
                     // Check if TLE
                     if time_exceeded.load(Ordering::Relaxed) {
                         break;
@@ -60,9 +63,7 @@ pub fn concurrent(
                     }
 
                     let start = Instant::now();
-                    let task_id = worked_id
-                        + chunk_size
-                        + tile_chunk.iter().position(|&pos| pos == (tx, ty)).unwrap();
+                    let start_time_ms = overall_start.elapsed().as_millis();
 
                     let data = render_tile(width, height, tx, ty, tile_w, tile_h, max_iter);
                     let duration_ms = start.elapsed().as_millis();
@@ -70,19 +71,26 @@ pub fn concurrent(
                     // Store the result
                     let record = TaskRecord {
                         task_id: task_id as u32,
+                        thread_id: thread_id as u32,
                         tile_x: tx as u32,
                         tile_y: ty as u32,
                         tile_w: tile_w as u32,
                         tile_h: tile_h as u32,
+                        start_time_ms,
                         duration_ms,
                         pixels_computed: (tile_w * tile_h) as u32,
                     };
 
                     // Lock and push to shared records
-                    records
-                        .lock()
-                        .unwrap()
-                        .push((record, data, duration_ms, tx, ty));
+                    records.lock().unwrap().push((
+                        record,
+                        data,
+                        start_time_ms,
+                        duration_ms,
+                        tx,
+                        ty,
+                        thread_id,
+                    ));
                 }
             });
         }
@@ -94,20 +102,24 @@ pub fn concurrent(
         .into_inner()
         .unwrap();
 
-    // Sort by task_id to maintain order
-    results.sort_by_key(|(record, _, _, _, _)| record.task_id);
+    // For parallel visualization, sort by start_time_ms or don't sort at all
+
+    // Sort by start_time to show completion order (shows true parallelism)
+    results.sort_by_key(|(record, _, start_time_ms, _, _, _, _)| *start_time_ms);
 
     let mut final_records = Vec::new();
-    for (record, data, duration_ms, tx, ty) in results {
+    for (record, data, start_time_ms, duration_ms, tx, ty, thread_id) in results {
         emit_tile.call1(
             py,
             (TileUpdate {
                 task_id: record.task_id,
+                thread_id: thread_id as u32,
                 tile_x: tx as u32,
                 tile_y: ty as u32,
                 tile_w: tile_w as u32,
                 tile_h: tile_h as u32,
                 data,
+                start_time_ms,
                 duration_ms,
             },),
         )?;

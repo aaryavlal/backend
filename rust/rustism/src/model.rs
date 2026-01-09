@@ -4,10 +4,12 @@ use pyo3::prelude::*;
 #[derive(Debug, IntoPyObject)]
 pub struct TaskRecord {
     pub task_id: u32,
+    pub thread_id: u32,
     pub tile_x: u32,
     pub tile_y: u32,
     pub tile_w: u32,
     pub tile_h: u32,
+    pub start_time_ms: u128,
     pub duration_ms: u128,
     pub pixels_computed: u32,
 }
@@ -15,11 +17,13 @@ pub struct TaskRecord {
 #[derive(IntoPyObject)]
 pub struct TileUpdate {
     pub task_id: u32,
+    pub thread_id: u32,
     pub tile_x: u32,
     pub tile_y: u32,
     pub tile_w: u32,
     pub tile_h: u32,
-    pub data: Vec<u16>, // iteration counts
+    pub data: Vec<u16>,
+    pub start_time_ms: u128,
     pub duration_ms: u128,
 }
 

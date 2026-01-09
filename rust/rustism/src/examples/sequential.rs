@@ -27,6 +27,7 @@ pub fn sequential(
             }
 
             let start = Instant::now();
+            let start_time_ms = overall_start.elapsed().as_millis();
 
             let data = render_tile(width, height, tx, ty, tile_w, tile_h, max_iter);
 
@@ -36,21 +37,25 @@ pub fn sequential(
                 py,
                 (TileUpdate {
                     task_id,
+                    thread_id: 0,
                     tile_x: tx as u32,
                     tile_y: ty as u32,
                     tile_w: tile_w as u32,
                     tile_h: tile_h as u32,
                     data,
+                    start_time_ms,
                     duration_ms,
                 },),
             )?;
 
             records.push(TaskRecord {
                 task_id,
+                thread_id: 0,
                 tile_x: tx as u32,
                 tile_y: ty as u32,
                 tile_w: tile_w as u32,
                 tile_h: tile_h as u32,
+                start_time_ms,
                 duration_ms,
                 pixels_computed: (tile_w * tile_h) as u32,
             });
