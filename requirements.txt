@@ -25,4 +25,3 @@ scipy
 pillow
 flask_socketio
 eventlet
-rustism
