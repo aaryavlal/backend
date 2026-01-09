@@ -23,3 +23,6 @@ tensorflow
 opencv-python
 scipy
 pillow
+flask_socketio
+eventlet
+rustism

@@ -15,14 +15,16 @@ COPY . /app
 # Upgrade pip and install dependencies
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
-    pip install gunicorn
+    pip install gunicorn eventlet
 
 # Set environment variables
-ENV FLASK_ENV=production \
-    GUNICORN_CMD_ARGS="--workers=5 --threads=2 --bind=0.0.0.0:8405 --timeout=30 --access-logfile -"
+ENV FLASK_ENV=production
 
-# Expose application port
-EXPOSE 8405
+# Expose application ports
+EXPOSE 8405 8500
 
-# Start Gunicorn server
-CMD ["gunicorn", "main:app"]
+# Make start.sh executable
+RUN chmod +x start.sh
+
+# Start both servers
+CMD ["./start.sh"]
