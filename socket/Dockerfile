@@ -37,4 +37,4 @@ EXPOSE 8406
 ENV FLASK_ENV=production
 
 # Run with Gunicorn in headless mode
-CMD ["gunicorn", "--worker-class", "eventlet", "--bind=0.0.0.0:8500", "socket_server:app"]
+CMD ["gunicorn", "--worker-class", "eventlet", "--bind=0.0.0.0:8406", "socket_server:app"]
