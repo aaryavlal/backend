@@ -13,7 +13,9 @@ services:
 
   socketio:
     image: socket_open
-    build: ./socket
+    build:
+      context: .
+      dockerfile: socket/Dockerfile
     ports:
       - "8406:8406"
 
