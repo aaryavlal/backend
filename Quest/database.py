@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import bcrypt
 from contextlib import contextmanager
 
 # Get absolute path for database
@@ -136,6 +137,38 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_glossary_term
             ON glossary(term)
         ''')
+
+        # Create default admin account if it doesn't exist
+        cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+        if cursor.fetchone() is None:
+            hashed_password = bcrypt.hashpw('Tr12Qu3st@Adm1n!2026'.encode('utf-8'), bcrypt.gensalt())
+            cursor.execute(
+                'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
+                ('admin', 'admin@tri2quest.local', hashed_password.decode('utf-8'), 'admin')
+            )
+            print('✅ Default admin account created (username: admin)')
+
+        # Create test users if they don't exist
+        test_users = [
+            ('testuser1', 'testuser1@tri2quest.local', 'TestUser1@2026'),
+            ('testuser2', 'testuser2@tri2quest.local', 'TestUser2@2026'),
+            ('testuser3', 'testuser3@tri2quest.local', 'TestUser3@2026'),
+            ('testuser4', 'testuser4@tri2quest.local', 'TestUser4@2026'),
+            ('testuser5', 'testuser5@tri2quest.local', 'TestUser5@2026'),
+            ('testuser6', 'testuser6@tri2quest.local', 'TestUser6@2026'),
+            ('testuser7', 'testuser7@tri2quest.local', 'TestUser7@2026'),
+            ('testuser8', 'testuser8@tri2quest.local', 'TestUser8@2026'),
+            ('testuser9', 'testuser9@tri2quest.local', 'TestUser9@2026'),
+        ]
+        for username, email, password in test_users:
+            cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+            if cursor.fetchone() is None:
+                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+                cursor.execute(
+                    'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
+                    (username, email, hashed_password.decode('utf-8'), 'student')
+                )
+        print('✅ Test users created (testuser1-9)')
 
         conn.commit()
         print('✅ Database initialized successfully')

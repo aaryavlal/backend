@@ -3,6 +3,7 @@
 Script to create an admin user
 Usage: python -m Quest.create_admin (from backend directory)
    or: python create_admin.py (from Quest directory)
+   or: python create_admin.py --default (to create default admin account)
 """
 
 import sys
@@ -18,6 +19,47 @@ else:
     from .models.user import User
 
 import getpass
+
+# Default admin credentials
+DEFAULT_ADMIN_USERNAME = 'admin'
+DEFAULT_ADMIN_EMAIL = 'admin@tri2quest.local'
+DEFAULT_ADMIN_PASSWORD = 'Tr12Qu3st@Adm1n!2026'
+
+
+def create_default_admin():
+    """Create a default admin account with preset credentials"""
+    init_db()
+
+    print("=" * 50)
+    print("Creating Default Admin User")
+    print("=" * 50)
+
+    # Check if admin already exists
+    if User.find_by_username(DEFAULT_ADMIN_USERNAME):
+        print(f"Admin user '{DEFAULT_ADMIN_USERNAME}' already exists.")
+        return False
+
+    if User.find_by_email(DEFAULT_ADMIN_EMAIL):
+        print(f"Email '{DEFAULT_ADMIN_EMAIL}' already exists.")
+        return False
+
+    try:
+        user = User.create(
+            username=DEFAULT_ADMIN_USERNAME,
+            email=DEFAULT_ADMIN_EMAIL,
+            password=DEFAULT_ADMIN_PASSWORD,
+            role='admin'
+        )
+        print(f"\nDefault admin user created successfully!")
+        print(f"   Username: {DEFAULT_ADMIN_USERNAME}")
+        print(f"   Email: {DEFAULT_ADMIN_EMAIL}")
+        print(f"   Password: {DEFAULT_ADMIN_PASSWORD}")
+        print(f"\n   IMPORTANT: Change this password after first login!")
+        return True
+    except Exception as e:
+        print(f"Error creating default admin: {e}")
+        return False
+
 
 def create_admin():
     # Initialize database
