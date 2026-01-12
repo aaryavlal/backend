@@ -1,7 +1,7 @@
 version: "3"
 services:
   web:
-    image: flask_open
+    image: hardware-havoc-web
     build: .
     env_file:
       - .env # This file is optional; defaults will be used if it does not exist
@@ -12,10 +12,10 @@ services:
     restart: unless-stopped
 
   # socketio:
-  #   image: socket_open
+  #   image: hardware-havoc-socket
   #   build:
   #     context: .
-  #     dockerfile: socket/Dockerfile
+  #     dockerfile: socket/dockerfile
   #   ports:
   #     - "8406:8406"
 

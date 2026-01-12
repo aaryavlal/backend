@@ -4,11 +4,11 @@ import json
 import os
 import random
 import sqlite3
-import textwrap
 
 # from api.announcement import announcement_api ##temporary revert
 # Import Quest blueprints (routes only - blueprint definition moved to this file)
 import sys
+import textwrap
 from datetime import datetime, timedelta
 from urllib.parse import urljoin, urlparse
 
@@ -37,7 +37,6 @@ from api.analytics import analytics_api
 from api.classroom_api import classroom_api
 
 # API endpoints
-from api.compute import compute_api
 from api.digit_api import digit_api
 from api.gemini_api import gemini_api
 from api.groq_api import groq_api
@@ -217,6 +216,8 @@ def summarize_attempts(attempts, max_items=5):
     # SEQUENCING: combine the lines into a single summary string
     summary_text = "\n".join(summary_lines)
     return summary_text
+
+
 # --- APREQ_PROCEDURE_END ---
 
 
@@ -392,7 +393,6 @@ def missing_token_callback(error):
 
 
 # register URIs for api endpoints
-app.register_blueprint(compute_api)
 app.register_blueprint(python_exec_api)
 app.register_blueprint(javascript_exec_api)
 app.register_blueprint(user_api)
@@ -893,4 +893,3 @@ if __name__ == "__main__":
     port = app.config["FLASK_PORT"]
     print(f"** Server running: http://localhost:8405")  # Pretty link
     app.run(debug=True, host="0.0.0.0", port=8405)
-
