@@ -21,7 +21,7 @@ RUN pip install --upgrade pip && \
 ENV FLASK_ENV=production
 
 # Expose application ports
-EXPOSE 8405 8406
+EXPOSE 8405
 
 # Start Gunicorn server
 CMD ["gunicorn", "main:app"]
