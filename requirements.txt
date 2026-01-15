@@ -19,7 +19,7 @@ python_dotenv
 boto3
 bcrypt
 tensorflow
-opencv-python
+opencv-python-headless
 scipy
 pillow
 flask_socketio
