@@ -20,6 +20,8 @@ RUN pip install --upgrade pip && \
 # Set environment variables
 ENV FLASK_ENV=production
 
+ENV GUNICORN_CMD_ARGS="--workers=1 --bind=0.0.0.0:8405"
+
 # Expose application ports
 EXPOSE 8405
 
