@@ -1,11 +1,11 @@
-from flask import Flask
-from flask_login import LoginManager
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from dotenv import load_dotenv
 import os
 
+from dotenv import load_dotenv
+from flask import Flask
+from flask_cors import CORS
+from flask_login import LoginManager
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,10 +16,12 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 # Configure Flask Port, default to 8405 which is same as Docker setup
-app.config['FLASK_PORT'] = int(os.environ.get('FLASK_PORT') or 8405)
+app.config["FLASK_PORT"] = int(os.environ.get("FLASK_PORT") or 8405)
 
 # Configure Flask to handle JSON with UTF-8 encoding versus default ASCII
-app.config['JSON_AS_ASCII'] = False  # Allow emojis, non-ASCII characters in JSON responses
+app.config["JSON_AS_ASCII"] = (
+    False  # Allow emojis, non-ASCII characters in JSON responses
+)
 
 
 # Initialize Flask-Login object
@@ -29,114 +31,131 @@ login_manager.init_app(app)
 
 # Allowed servers for cross-origin resource sharing (CORS)
 cors = CORS(
-   app,
-   supports_credentials=True,
-   origins=[
-       'http://localhost:4000',
-       'http://127.0.0.1:4000',
-       'http://localhost:4500',
-       'http://127.0.0.1:4500',
-       'http://localhost:4600',
-       'http://127.0.0.1:4600',
-       'http://localhost:8405',
-       'http://127.0.0.1:8405',
-       'https://hardwarehavoc.github.io',
-       'https://pages.hardwarehavoc.com',
-   ],
-   methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    app,
+    supports_credentials=True,
+    origins=[
+        "http://localhost:4000",
+        "http://127.0.0.1:4000",
+        "http://localhost:4500",
+        "http://127.0.0.1:4500",
+        "http://localhost:4600",
+        "http://127.0.0.1:4600",
+        "http://localhost:8405",
+        "http://127.0.0.1:8405",
+        "https://hardwarehavoc.github.io",
+        "https://pages.hardwarehavoc.com",
+        "https://aaryavlal.github.io",
+    ],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 )
 
 
 # Admin Defaults
-app.config['ADMIN_USER'] = os.environ.get('ADMIN_USER') or 'Admin Name'
-app.config['ADMIN_UID'] = os.environ.get('ADMIN_UID') or 'admin'
-app.config['ADMIN_PASSWORD'] = os.environ.get('ADMIN_PASSWORD') or os.environ.get('DEFAULT_PASSWORD') or 'password'
-app.config['ADMIN_PFP'] = os.environ.get('ADMIN_PFP') or 'default.png'
+app.config["ADMIN_USER"] = os.environ.get("ADMIN_USER") or "Admin Name"
+app.config["ADMIN_UID"] = os.environ.get("ADMIN_UID") or "admin"
+app.config["ADMIN_PASSWORD"] = (
+    os.environ.get("ADMIN_PASSWORD") or os.environ.get("DEFAULT_PASSWORD") or "password"
+)
+app.config["ADMIN_PFP"] = os.environ.get("ADMIN_PFP") or "default.png"
 # Default User Defaults
-app.config['DEFAULT_USER'] = os.environ.get('DEFAULT_USER') or 'User Name'
-app.config['DEFAULT_UID'] = os.environ.get('DEFAULT_UID') or 'user'
-app.config['DEFAULT_USER_PASSWORD'] = os.environ.get('DEFAULT_USER_PASSWORD') or os.environ.get('DEFAULT_PASSWORD') or 'password'
-app.config['DEFAULT_USER_PFP'] = os.environ.get('DEFAULT_USER_PFP') or 'default.png'
+app.config["DEFAULT_USER"] = os.environ.get("DEFAULT_USER") or "User Name"
+app.config["DEFAULT_UID"] = os.environ.get("DEFAULT_UID") or "user"
+app.config["DEFAULT_USER_PASSWORD"] = (
+    os.environ.get("DEFAULT_USER_PASSWORD")
+    or os.environ.get("DEFAULT_PASSWORD")
+    or "password"
+)
+app.config["DEFAULT_USER_PFP"] = os.environ.get("DEFAULT_USER_PFP") or "default.png"
 # Reset Defaults
-app.config['DEFAULT_PASSWORD'] = os.environ.get('DEFAULT_PASSWORD') or 'password'
-app.config['DEFAULT_PFP'] = os.environ.get('DEFAULT_PFP') or 'default.png'
+app.config["DEFAULT_PASSWORD"] = os.environ.get("DEFAULT_PASSWORD") or "password"
+app.config["DEFAULT_PFP"] = os.environ.get("DEFAULT_PFP") or "default.png"
 
 
 # Browser settings
-SECRET_KEY = os.environ.get('SECRET_KEY') or 'SECRET_KEY' # secret key for session management
-SESSION_COOKIE_NAME = os.environ.get('SESSION_COOKIE_NAME') or 'sess_python_flask'
-JWT_TOKEN_NAME = os.environ.get('JWT_TOKEN_NAME') or 'jwt_python_flask'
-app.config['SECRET_KEY'] = SECRET_KEY
-app.config['SESSION_COOKIE_NAME'] = SESSION_COOKIE_NAME
-app.config['JWT_TOKEN_NAME'] = JWT_TOKEN_NAME
+SECRET_KEY = (
+    os.environ.get("SECRET_KEY") or "SECRET_KEY"
+)  # secret key for session management
+SESSION_COOKIE_NAME = os.environ.get("SESSION_COOKIE_NAME") or "sess_python_flask"
+JWT_TOKEN_NAME = os.environ.get("JWT_TOKEN_NAME") or "jwt_python_flask"
+app.config["SECRET_KEY"] = SECRET_KEY
+app.config["SESSION_COOKIE_NAME"] = SESSION_COOKIE_NAME
+app.config["JWT_TOKEN_NAME"] = JWT_TOKEN_NAME
 
 
 # Database settings
-dbName = 'user_management'
-DB_ENDPOINT = os.environ.get('DB_ENDPOINT') or None
-DB_USERNAME = os.environ.get('DB_USERNAME') or None
-DB_PASSWORD = os.environ.get('DB_PASSWORD') or None
+dbName = "user_management"
+DB_ENDPOINT = os.environ.get("DB_ENDPOINT") or None
+DB_USERNAME = os.environ.get("DB_USERNAME") or None
+DB_PASSWORD = os.environ.get("DB_PASSWORD") or None
 if DB_ENDPOINT and DB_USERNAME and DB_PASSWORD:
-   # Production - Use MySQL
-   DB_PORT = '3306'
-   DB_NAME = dbName
-   dbString = f'mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_ENDPOINT}:{DB_PORT}'
-   dbURI =  dbString + '/' + dbName
-   backupURI = None  # MySQL backup would require a different approach
+    # Production - Use MySQL
+    DB_PORT = "3306"
+    DB_NAME = dbName
+    dbString = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_ENDPOINT}:{DB_PORT}"
+    dbURI = dbString + "/" + dbName
+    backupURI = None  # MySQL backup would require a different approach
 else:
-   # Development - Use SQLite
-   dbString = 'sqlite:///volumes/'
-   dbURI = dbString + dbName + '.db'
-   backupURI = dbString + dbName + '_bak.db'
+    # Development - Use SQLite
+    dbString = "sqlite:///volumes/"
+    dbURI = dbString + dbName + ".db"
+    backupURI = dbString + dbName + "_bak.db"
 # Set database configuration in Flask app
-app.config['DB_ENDPOINT'] = DB_ENDPOINT
-app.config['DB_USERNAME'] = DB_USERNAME
-app.config['DB_PASSWORD'] = DB_PASSWORD
-app.config['SQLALCHEMY_DATABASE_NAME'] = dbName
-app.config['SQLALCHEMY_DATABASE_STRING'] = dbString
-app.config['SQLALCHEMY_DATABASE_URI'] = dbURI
-app.config['SQLALCHEMY_BACKUP_URI'] = backupURI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["DB_ENDPOINT"] = DB_ENDPOINT
+app.config["DB_USERNAME"] = DB_USERNAME
+app.config["DB_PASSWORD"] = DB_PASSWORD
+app.config["SQLALCHEMY_DATABASE_NAME"] = dbName
+app.config["SQLALCHEMY_DATABASE_STRING"] = dbString
+app.config["SQLALCHEMY_DATABASE_URI"] = dbURI
+app.config["SQLALCHEMY_BACKUP_URI"] = backupURI
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
 # Image upload settings
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # maximum size of uploaded content
-app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.png', '.gif']  # supported file types
-app.config['UPLOAD_FOLDER'] = os.path.join(app.instance_path, 'uploads')
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # maximum size of uploaded content
+app.config["UPLOAD_EXTENSIONS"] = [".jpg", ".png", ".gif"]  # supported file types
+app.config["UPLOAD_FOLDER"] = os.path.join(app.instance_path, "uploads")
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # Data folder for shared file-based storage
-app.config['DATA_FOLDER'] = os.path.join(app.instance_path, 'data')
-os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
+app.config["DATA_FOLDER"] = os.path.join(app.instance_path, "data")
+os.makedirs(app.config["DATA_FOLDER"], exist_ok=True)
 
 
 # GITHUB settings
-app.config['GITHUB_API_URL'] = 'https://api.github.com'
-app.config['GITHUB_TOKEN'] = os.environ.get('GITHUB_TOKEN') or None
-app.config['GITHUB_TARGET_TYPE'] = os.environ.get('GITHUB_TARGET_TYPE') or 'user'
-app.config['GITHUB_TARGET_NAME'] = os.environ.get('GITHUB_TARGET_NAME') or 'hardwarehavoc'
+app.config["GITHUB_API_URL"] = "https://api.github.com"
+app.config["GITHUB_TOKEN"] = os.environ.get("GITHUB_TOKEN") or None
+app.config["GITHUB_TARGET_TYPE"] = os.environ.get("GITHUB_TARGET_TYPE") or "user"
+app.config["GITHUB_TARGET_NAME"] = (
+    os.environ.get("GITHUB_TARGET_NAME") or "hardwarehavoc"
+)
 
 
 # Gemini API settingsa
-app.config['GEMINI_SERVER'] = os.environ.get('GEMINI_SERVER') or 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
-app.config['GEMINI_API_KEY'] = os.environ.get('GEMINI_API_KEY') or None
+app.config["GEMINI_SERVER"] = (
+    os.environ.get("GEMINI_SERVER")
+    or "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+)
+app.config["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY") or None
 
 
 # KASM settings
-app.config['KASM_SERVER'] = os.environ.get('KASM_SERVER') or 'https://kasm.hardwarehavoc.com'
-app.config['KASM_API_KEY'] = os.environ.get('KASM_API_KEY') or None
-app.config['KASM_API_KEY_SECRET'] = os.environ.get('KASM_API_KEY_SECRET') or None
+app.config["KASM_SERVER"] = (
+    os.environ.get("KASM_SERVER") or "https://kasm.hardwarehavoc.com"
+)
+app.config["KASM_API_KEY"] = os.environ.get("KASM_API_KEY") or None
+app.config["KASM_API_KEY_SECRET"] = os.environ.get("KASM_API_KEY_SECRET") or None
 
 
-#GROQ settings
-app.config['GROQ_API_KEY'] = os.environ.get('GROQ_API_KEY')
+# GROQ settings
+app.config["GROQ_API_KEY"] = os.environ.get("GROQ_API_KEY")
 
 # Allow anonymous submissions for local/dev testing by default. Set the
 # environment variable `ALLOW_ANONYMOUS_SUBMIT=false` to disable in stricter setups.
-app.config['ALLOW_ANONYMOUS_SUBMIT'] = not (os.environ.get('ALLOW_ANONYMOUS_SUBMIT', '').lower() in ('0','false','no'))
+app.config["ALLOW_ANONYMOUS_SUBMIT"] = not (
+    os.environ.get("ALLOW_ANONYMOUS_SUBMIT", "").lower() in ("0", "false", "no")
+)
 # UID to use for a shared anonymous account (will be created if missing when anonymous is allowed)
-app.config['ANONYMOUS_UID'] = os.environ.get('ANONYMOUS_UID') or 'guest'
-app.config['ANONYMOUS_NAME'] = os.environ.get('ANONYMOUS_NAME') or 'Guest User'
-
+app.config["ANONYMOUS_UID"] = os.environ.get("ANONYMOUS_UID") or "guest"
+app.config["ANONYMOUS_NAME"] = os.environ.get("ANONYMOUS_NAME") or "Guest User"
