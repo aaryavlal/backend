@@ -9,6 +9,7 @@ services:
       - "8405:8405"
     volumes:
       - ./instance:/app/instance
+      - ./Quest:/app/Quest
     restart: unless-stopped
 
   # socketio:
