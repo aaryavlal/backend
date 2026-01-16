@@ -37,7 +37,13 @@ from api.analytics import analytics_api
 from api.classroom_api import classroom_api
 
 # API endpoints
-from api.digit_api import digit_api
+try:
+    from api.digit_api import digit_api
+    HAS_DIGIT_API = True
+except ImportError as e:
+    print(f"Warning: digit_api not available: {e}")
+    HAS_DIGIT_API = False
+    digit_api = None
 from api.gemini_api import gemini_api
 from api.groq_api import groq_api
 from api.javascript_exec_api import javascript_exec_api
@@ -405,7 +411,8 @@ app.register_blueprint(microblog_api)
 
 app.register_blueprint(analytics_api)
 app.register_blueprint(student_api)
-app.register_blueprint(digit_api)
+if HAS_DIGIT_API:
+    app.register_blueprint(digit_api)
 # app.register_blueprint(grade_api)
 app.register_blueprint(study_api)
 app.register_blueprint(classroom_api)
