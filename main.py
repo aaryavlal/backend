@@ -85,12 +85,20 @@ from model.study import Study, initStudies
 
 # database Initialization functions
 from model.user import Section, User, initUsers
-from Quest.routes.auth import auth_bp
-from Quest.routes.game_logs import game_logs_bp
-from Quest.routes.glossary import glossary_bp
-from Quest.routes.progress import progress_bp
-from Quest.routes.rooms import rooms_bp
-from Quest.routes.speedup import speedup_bp
+
+# Quest routes - optional import
+try:
+    from Quest.routes.auth import auth_bp
+    from Quest.routes.game_logs import game_logs_bp
+    from Quest.routes.glossary import glossary_bp
+    from Quest.routes.progress import progress_bp
+    from Quest.routes.rooms import rooms_bp
+    from Quest.routes.speedup import speedup_bp
+    HAS_QUEST_ROUTES = True
+except ImportError as e:
+    print(f"Warning: Quest routes not available: {e}")
+    HAS_QUEST_ROUTES = False
+    auth_bp = game_logs_bp = glossary_bp = progress_bp = rooms_bp = speedup_bp = None
 
 # Load environment variables
 load_dotenv()
@@ -423,13 +431,17 @@ app.register_blueprint(post_api)  # Register the social media post API
 app.register_blueprint(quiz_api)
 
 # Register Quest blueprints
-app.register_blueprint(quest_bp)
-app.register_blueprint(auth_bp)
-app.register_blueprint(rooms_bp)
-app.register_blueprint(progress_bp)
-app.register_blueprint(glossary_bp)
-app.register_blueprint(game_logs_bp)
-app.register_blueprint(speedup_bp)
+if HAS_QUEST_ROUTES:
+    app.register_blueprint(quest_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(rooms_bp)
+    app.register_blueprint(progress_bp)
+    app.register_blueprint(glossary_bp)
+    app.register_blueprint(game_logs_bp)
+    app.register_blueprint(speedup_bp)
+    print("✅ Quest routes registered successfully")
+else:
+    print("⚠️  Quest routes not available - skipped registration")
 
 # --- Jokes API Resources ---
 api = Api(app)
