@@ -19,11 +19,12 @@ RUN pip install --upgrade pip && \
 
 # Set environment variables
 ENV FLASK_ENV=production
+ENV PYTHONUNBUFFERED=1
 
 ENV GUNICORN_CMD_ARGS="--workers=1 --bind=0.0.0.0:8405"
 
 # Expose application ports
 EXPOSE 8405
 
-# Start Gunicorn server
-CMD ["gunicorn", "main:app"]
+# Start Gunicorn server with access logs enabled
+CMD ["gunicorn", "--bind", "0.0.0.0:8405", "--access-logfile", "-", "--error-logfile", "-", "--capture-output", "main:app"]
