@@ -45,6 +45,7 @@ cors = CORS(
         "https://hardwarehavoc.github.io",
         "https://pages.hardwarehavoc.com",
         "https://aaryavlal.github.io",
+        "https://hardwarehavoc.opencodingsociety.com",
     ],
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 )
