@@ -19,6 +19,7 @@ python_dotenv
 boto3
 bcrypt
 tensorflow
+keras
 opencv-python-headless
 scipy
 pillow
