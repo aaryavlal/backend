@@ -39,11 +39,13 @@ from api.classroom_api import classroom_api
 # API endpoints
 try:
     from api.digit_api import digit_api
+
     HAS_DIGIT_API = True
 except ImportError as e:
     print(f"Warning: digit_api not available: {e}")
     HAS_DIGIT_API = False
     digit_api = None
+from api.compute import compute_api
 from api.gemini_api import gemini_api
 from api.groq_api import groq_api
 from api.javascript_exec_api import javascript_exec_api
@@ -94,6 +96,7 @@ try:
     from Quest.routes.progress import progress_bp
     from Quest.routes.rooms import rooms_bp
     from Quest.routes.speedup import speedup_bp
+
     HAS_QUEST_ROUTES = True
 except ImportError as e:
     print(f"Warning: Quest routes not available: {e}")
@@ -429,6 +432,7 @@ app.register_blueprint(scenario_api)  # Register the joke API blueprint
 app.register_blueprint(post_api)  # Register the social media post API
 # app.register_blueprint(announcement_api) ##temporary revert
 app.register_blueprint(quiz_api)
+app.register_blueprint(compute_api)
 
 # Register Quest blueprints
 if HAS_QUEST_ROUTES:
