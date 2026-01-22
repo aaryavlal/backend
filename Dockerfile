@@ -4,11 +4,17 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies and clean up apt cache
+# Install system dependencies required for TensorFlow, OpenCV, scipy, and Rust
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libhdf5-dev \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
