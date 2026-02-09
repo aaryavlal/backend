@@ -23,7 +23,7 @@ GEMINI_API_KEY = "" #insert api key here if you want to use the Gemini grading f
 #gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 QUESTION = (
-    "Module 4 explained that every algorithm mixes sequential setup/combining steps with parallel chunks. "
+    "Mission debrief: Module 4 explained that every algorithm mixes sequential setup/combining steps with parallel chunks. "
     "In 2 short sentences, describe why the sequential portion eventually limits speedup even if you keep adding processors, "
     "and mention one practical tweak from the module (shrink the sequential slice, expose more parallel work, reduce overhead/balance issues) "
     "that keeps improvements coming a little longer."

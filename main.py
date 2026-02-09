@@ -146,7 +146,7 @@ os.makedirs(QUEST_LOGS_FOLDER, exist_ok=True)
 gemini_client = None
 
 QUESTION = (
-    "Module 4 explained that every algorithm mixes sequential setup/combining steps with parallel chunks. "
+    "Mission debrief: Module 4 explained that every algorithm mixes sequential setup/combining steps with parallel chunks. "
     "In 2 short sentences, describe why the sequential portion eventually limits speedup even if you keep adding processors, "
     "and mention one practical tweak from the module (shrink the sequential slice, expose more parallel work, reduce overhead/balance issues) "
     "that keeps improvements coming a little longer."
