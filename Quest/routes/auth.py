@@ -131,6 +131,39 @@ def get_current_user():
 
     return jsonify({'user': user}), 200
 
+@auth_bp.route('/users', methods=['GET'])
+@jwt_required()
+def list_users():
+    """List all users (admin only)"""
+    user_id = int(get_jwt_identity())
+    user = User.find_by_id(user_id)
+
+    if not user or user.get('role') != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    users = User.get_all_users()
+    return jsonify(users), 200
+
+@auth_bp.route('/users/<int:target_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(target_id):
+    """Delete a user (admin only)"""
+    user_id = int(get_jwt_identity())
+    user = User.find_by_id(user_id)
+
+    if not user or user.get('role') != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    if target_id == user_id:
+        return jsonify({'error': 'Cannot delete yourself'}), 400
+
+    target = User.find_by_id(target_id)
+    if not target:
+        return jsonify({'error': 'User not found'}), 404
+
+    User.delete_user(target_id)
+    return jsonify({'message': f'User {target["username"]} deleted'}), 200
+
 @auth_bp.route('/me', methods=['PUT'])
 @jwt_required()
 def update_current_user():

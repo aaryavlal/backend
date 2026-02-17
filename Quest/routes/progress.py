@@ -84,3 +84,45 @@ def get_user_progress(user_id):
         'total_modules': 6,
         'progress_percentage': round((len(completed_modules) / 6) * 100, 2)
     }), 200
+
+@progress_bp.route('/admin/toggle/<int:target_user_id>/<int:module_number>', methods=['PUT'])
+@jwt_required()
+def admin_toggle_module(target_user_id, module_number):
+    """Toggle a module completion for a user (admin only)"""
+    user_id = int(get_jwt_identity())
+    admin = User.find_by_id(user_id)
+
+    if not admin or admin.get('role') != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    if module_number < 1 or module_number > 6:
+        return jsonify({'error': 'Module number must be between 1 and 6'}), 400
+
+    target = User.find_by_id(target_user_id)
+    if not target:
+        return jsonify({'error': 'User not found'}), 404
+
+    completed = User.get_completed_modules(target_user_id)
+
+    if module_number in completed:
+        User.remove_module_complete(target_user_id, module_number)
+        action = 'removed'
+        room_id = target.get('current_room_id')
+        if room_id:
+            Room.recheck_room_module_progress(room_id, module_number)
+    else:
+        User.mark_module_complete(target_user_id, module_number)
+        action = 'added'
+        room_id = target.get('current_room_id')
+        if room_id:
+            Room.check_and_update_room_progress(room_id, module_number)
+
+    new_completed = User.get_completed_modules(target_user_id)
+
+    return jsonify({
+        'message': f'Module {module_number} {action} for {target["username"]}',
+        'action': action,
+        'user_id': target_user_id,
+        'module_number': module_number,
+        'completed_modules': new_completed
+    }), 200

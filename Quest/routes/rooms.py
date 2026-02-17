@@ -162,22 +162,46 @@ def get_room_progress(room_id):
 
     return jsonify(stats), 200
 
+@rooms_bp.route('/<int:room_id>/member-progress', methods=['GET'])
+@jwt_required()
+def get_room_member_progress(room_id):
+    """Get progress of all members in a room (admin only)"""
+    user_id = int(get_jwt_identity())
+    user = User.find_by_id(user_id)
+    print(f"[member-progress] user_id={user_id}, user={user}, role={user.get('role') if user else 'N/A'}")
+    if not user or user.get('role') != 'admin':
+        return jsonify({'error': 'Admin access required', 'debug_user_id': user_id, 'debug_role': user.get('role') if user else None}), 403
+
+    room = Room.find_by_id(room_id)
+    if not room:
+        return jsonify({'error': 'Room not found'}), 404
+
+    member_progress = Room.get_member_progress(room_id)
+
+    return jsonify({
+        'room_id': room_id,
+        'room_name': room['name'],
+        'members': member_progress
+    }), 200
+
 @rooms_bp.route('/<int:room_id>/reset-progress', methods=['POST'])
 @jwt_required()
 def reset_room_progress(room_id):
-    """Reset all progress for a room (admin only or demo room)"""
+    """Reset all progress for a room (admin, demo room, or when all 6 modules complete)"""
     room = Room.find_by_id(room_id)
-    
+
     if not room:
         return jsonify({'error': 'Room not found'}), 404
-    
-    # Allow reset for demo room or if user is admin
+
+    # Allow reset for demo room, admin, or when all 6 modules are complete
     is_demo = Room.is_demo_room(room_id)
     is_admin = require_admin()
-    
-    if not is_demo and not is_admin:
-        return jsonify({'error': 'Admin access required'}), 403
-    
+    room_progress = Room.get_room_progress(room_id)
+    all_complete = len(room_progress) >= 6
+
+    if not is_demo and not is_admin and not all_complete:
+        return jsonify({'error': 'Admin access required or all modules must be complete'}), 403
+
     Room.reset_room_progress(room_id)
     
     return jsonify({

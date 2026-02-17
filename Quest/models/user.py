@@ -67,7 +67,19 @@ class User:
         except:
             # Module already completed (UNIQUE constraint)
             return False
-    
+
+    @staticmethod
+    def remove_module_complete(user_id, module_number):
+        """Remove a module completion for a user"""
+        try:
+            execute_db(
+                'DELETE FROM user_progress WHERE user_id = ? AND module_number = ?',
+                (user_id, module_number)
+            )
+            return True
+        except:
+            return False
+
     @staticmethod
     def update_current_room(user_id, room_id):
         """Update user's current room"""

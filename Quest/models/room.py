@@ -201,7 +201,27 @@ class Room:
             return {'module_complete': True, 'room_complete': False}
         
         return {'module_complete': False, 'room_complete': False}
-    
+
+    @staticmethod
+    def recheck_room_module_progress(room_id, module_number):
+        """Recheck if a room module is still complete after a user's completion was removed."""
+        members = Room.get_members(room_id)
+        if not members:
+            return
+
+        result = query_db('''
+            SELECT COUNT(DISTINCT up.user_id) as completed_count
+            FROM user_progress up
+            JOIN room_members rm ON up.user_id = rm.user_id
+            WHERE rm.room_id = ? AND up.module_number = ?
+        ''', (room_id, module_number), one=True)
+
+        if result['completed_count'] < len(members):
+            execute_db(
+                'DELETE FROM room_progress WHERE room_id = ? AND module_number = ?',
+                (room_id, module_number)
+            )
+
     @staticmethod
     def reset_demo_room(room_id):
         """Reset the demo room's progress but keep members"""
