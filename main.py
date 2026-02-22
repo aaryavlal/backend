@@ -193,7 +193,7 @@ RECENT_ATTEMPTS = []
 
 # STUDENT-DEVELOPED PROCEDURE WITH LIST + SEQUENCING/SELECTION/LOOP
 # --- APREQ_PROCEDURE_START ---
-def summarize_attempts(attempts, max_items=5):
+def summarize_attempts(attempts, max_items=5, partial_floor=0):
     """
     Build a short summary of recent quiz attempts.
 
@@ -224,7 +224,7 @@ def summarize_attempts(attempts, max_items=5):
         # SELECTION: choose a label based on score
         if score == max_score:
             label = "Perfect"
-        elif score > 0:
+        elif score > partial_floor:
             label = "Partial"
         else:
             label = "No credit"
