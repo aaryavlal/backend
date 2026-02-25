@@ -119,11 +119,6 @@ app.config["GEMINI_SERVER"] = os.getenv(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
 )
 
-# Add google.genai import for Gemini API
-try:
-    from google import genai
-except ImportError:
-    genai = None
 
 
 # Quest database path
@@ -142,8 +137,59 @@ os.makedirs(QUEST_DATA_FOLDER, exist_ok=True)
 QUEST_LOGS_FOLDER = os.path.join(os.path.dirname(__file__), "Quest", "logs")
 os.makedirs(QUEST_LOGS_FOLDER, exist_ok=True)
 
-# Gemini client will be initialized lazily when needed
-gemini_client = None
+def fetch_gemini_response(prompt):
+    api_key = app.config.get("GEMINI_API_KEY")
+    server = app.config.get("GEMINI_SERVER")
+
+    if not api_key or not server:
+        return None, {"error": "Gemini API is not configured on the server (GEMINI_API_KEY missing)."}
+
+    endpoint = f"{server}?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json"},
+    }
+
+    try:
+        response = requests.post(
+            endpoint,
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=60,
+        )
+    except requests.RequestException as exc:
+        return None, {"error": "Gemini API call failed.", "details": str(exc)}
+
+    if response.status_code != 200:
+        return None, {
+            "error": "Gemini API call failed.",
+            "details": response.text,
+            "status_code": response.status_code,
+        }
+
+    try:
+        result = response.json()
+    except ValueError:
+        return None, {
+            "error": "Gemini API returned invalid JSON.",
+            "details": response.text,
+        }
+
+    candidates = result.get("candidates") or []
+    if not candidates:
+        return None, {
+            "error": "Gemini API returned no candidates.",
+            "details": result,
+        }
+
+    parts = candidates[0].get("content", {}).get("parts", [])
+    if not parts:
+        return None, {
+            "error": "Gemini API returned empty content.",
+            "details": result,
+        }
+
+    return parts[0].get("text", ""), None
 
 QUESTION = (
     "Mission debrief: Module 4 explained that every algorithm mixes sequential setup/combining steps with parallel chunks. "
@@ -245,26 +291,6 @@ def summarize_attempts(attempts, max_items=5, partial_floor=0):
 def grade_quiz():
     print(">>> grade_quiz endpoint hit")
 
-    # Initialize gemini client lazily within request context
-    global gemini_client
-    if gemini_client is None and app.config.get("GEMINI_API_KEY") and genai:
-        try:
-            gemini_client = genai.Client(api_key=app.config.get("GEMINI_API_KEY"))
-        except Exception as e:
-            print(f"Failed to initialize Gemini client: {e}")
-            return jsonify(
-                {
-                    "error": "Gemini API is not configured on the server (GEMINI_API_KEY missing)."
-                }
-            ), 500
-
-    if gemini_client is None:
-        return jsonify(
-            {
-                "error": "Gemini API is not configured on the server (GEMINI_API_KEY missing)."
-            }
-        ), 500
-
     # INPUT FROM USER (body JSON field 'answer')
     data = request.get_json(silent=True) or {}
     student_answer = (data.get("answer") or "").strip()
@@ -284,27 +310,18 @@ Student answer:
 \"\"\"{student_answer}\"\"\""""
 
     try:
-        # Ask Gemini for a JSON response
-        gemini_response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config={"response_mime_type": "application/json"},
-        )
+        raw_text, error_payload = fetch_gemini_response(prompt)
+        if error_payload:
+            return jsonify(error_payload), 500
 
-        result = getattr(gemini_response, "parsed", None)
-        raw_text = getattr(gemini_response, "text", "")
-
-        if isinstance(result, dict):
-            graded = result
-        else:
-            try:
-                graded = json.loads(raw_text)
-            except Exception:
-                graded = {
-                    "score": 0,
-                    "max_score": 3,
-                    "feedback": raw_text or "Model returned an unexpected response.",
-                }
+        try:
+            graded = json.loads(raw_text)
+        except Exception:
+            graded = {
+                "score": 0,
+                "max_score": 3,
+                "feedback": raw_text or "Model returned an unexpected response.",
+            }
 
         graded_score = graded.get("score", 0)
         graded_max = graded.get("max_score", 3)
